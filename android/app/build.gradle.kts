@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -44,7 +46,7 @@ android {
 
     // Add signing configuration if key.properties exists
     if (useKeystore) {
-        val properties = java.util.Properties()
+        val properties = Properties()
         properties.load(keystorePropertiesFile.inputStream())
         
         signingConfigs {
