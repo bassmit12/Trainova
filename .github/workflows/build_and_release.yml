@@ -17,12 +17,12 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: "zulu"
-          java-version: "11"
+          java-version: "17"
 
       # Set up Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.19.0"
+          flutter-version: "3.29.3"
           channel: "stable"
 
       # Get Flutter dependencies
@@ -37,7 +37,7 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-        if: "${{ env.KEYSTORE_BASE64 != '' }}"
+        if: "${{ secrets.KEYSTORE_BASE64 != '' }}"
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
