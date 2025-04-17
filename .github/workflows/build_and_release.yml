@@ -36,8 +36,8 @@ jobs:
       # Setup keystore
       - name: Setup keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
-          echo "storeFile=keystore.jks" >> android/key.properties
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+          echo "storeFile=upload-keystore.jks" >> android/key.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
@@ -75,5 +75,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./build/app/outputs/flutter-apk/app-release.apk
-          asset_name: ai_fitness_app_2-v${{ env.VERSION }}.apk
+          asset_name: trainova-v${{ env.VERSION }}.apk
           asset_content_type: application/vnd.android.package-archive

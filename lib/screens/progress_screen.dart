@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
+import '../models/workout_history.dart';
+import '../models/user.dart';
+import '../services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:math';
 
 class ProgressScreen extends StatefulWidget {
@@ -16,58 +21,282 @@ class _ProgressScreenState extends State<ProgressScreen>
   late TabController _tabController;
   final List<String> _tabs = ['Weekly', 'Monthly', 'Yearly'];
 
-  // Mock data - in a real app this would come from a backend
-  final List<Map<String, dynamic>> _weeklyWorkouts = [
-    {'day': 'Mon', 'minutes': 45, 'calories': 320},
-    {'day': 'Tue', 'minutes': 30, 'calories': 250},
-    {'day': 'Wed', 'minutes': 0, 'calories': 0},
-    {'day': 'Thu', 'minutes': 60, 'calories': 450},
-    {'day': 'Fri', 'minutes': 45, 'calories': 380},
-    {'day': 'Sat', 'minutes': 90, 'calories': 650},
-    {'day': 'Sun', 'minutes': 0, 'calories': 0},
-  ];
+  // Workout data
+  List<WorkoutHistory> _workoutHistory = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+  UserModel? _user;
 
-  final Map<String, dynamic> _goals = {
-    'weeklyWorkouts': {'current': 4, 'target': 5},
-    'weeklyMinutes': {'current': 270, 'target': 300},
-    'monthlyCalories': {'current': 8500, 'target': 10000},
+  // Weekly activity data
+  List<Map<String, dynamic>> _weeklyWorkouts = [];
+
+  // Goals data
+  Map<String, dynamic> _goals = {
+    'weeklyWorkouts': {'current': 0, 'target': 5},
+    'weeklyMinutes': {'current': 0, 'target': 300},
+    'monthlyCalories': {'current': 0, 'target': 10000},
   };
 
-  final List<Map<String, dynamic>> _recentWorkouts = [
-    {
-      'name': 'Full Body HIIT',
-      'date': 'Today',
-      'time': '35 min',
-      'calories': 310,
-      'completed': true,
-    },
-    {
-      'name': 'Upper Body Strength',
-      'date': 'Yesterday',
-      'time': '45 min',
-      'calories': 280,
-      'completed': true,
-    },
-    {
-      'name': 'Core & Stretching',
-      'date': '2 days ago',
-      'time': '30 min',
-      'calories': 180,
-      'completed': true,
-    },
-    {
-      'name': 'Cardio Blast',
-      'date': '3 days ago',
-      'time': '25 min',
-      'calories': 220,
-      'completed': false,
-    },
-  ];
+  // Recent workouts
+  List<Map<String, dynamic>> _recentWorkouts = [];
+
+  // Body stats
+  Map<String, dynamic> _bodyStats = {
+    'weight': {'value': '0', 'unit': 'kg', 'change': 'No data'},
+    'bodyFat': {'value': '0', 'unit': '%', 'change': 'No data'},
+    'muscleMass': {'value': '0', 'unit': '%', 'change': 'No data'},
+    'bmi': {'value': '0', 'unit': '', 'change': 'No data'}
+  };
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _loadUserProfile();
+      await _loadWorkoutHistory();
+      _processWorkoutData();
+      _calculateGoals();
+      _prepareBodyStats();
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error loading data: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      await authService.getCurrentUserProfile();
+      setState(() {
+        _user = authService.currentUser;
+      });
+    } catch (e) {
+      debugPrint('Error loading user profile: $e');
+      // Continue even if user profile fails to load
+    }
+  }
+
+  Future<void> _loadWorkoutHistory() async {
+    try {
+      final history = await WorkoutHistory.fetchUserWorkoutHistory();
+      setState(() {
+        _workoutHistory = history;
+      });
+    } catch (e) {
+      debugPrint('Error loading workout history: $e');
+      // Return empty list if fails
+      setState(() {
+        _workoutHistory = [];
+      });
+    }
+  }
+
+  void _processWorkoutData() {
+    // Process workout history into weekly data
+    _prepareWeeklyActivityData();
+
+    // Prepare recent workouts data
+    _prepareRecentWorkouts();
+  }
+
+  void _prepareWeeklyActivityData() {
+    // Initialize the weekly data structure with days of the week
+    final now = DateTime.now();
+    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    // Get start of current week (Monday)
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+
+    // Initialize weekly workout data with zeros
+    _weeklyWorkouts = List.generate(7, (index) {
+      final day = startOfWeek.add(Duration(days: index));
+      return {
+        'day': dayNames[index],
+        'date': day,
+        'minutes': 0,
+        'calories': 0,
+      };
+    });
+
+    // Fill in actual workout data
+    for (var workout in _workoutHistory) {
+      // Only consider this week's workouts
+      if (workout.completedAt.isAfter(startOfWeek) &&
+          workout.completedAt
+              .isBefore(startOfWeek.add(const Duration(days: 7)))) {
+        // Get day of week (0 = Monday, 6 = Sunday)
+        final dayOfWeek = workout.completedAt.weekday - 1;
+
+        // Add workout data to the appropriate day
+        _weeklyWorkouts[dayOfWeek]['minutes'] += workout.durationMinutes;
+        _weeklyWorkouts[dayOfWeek]['calories'] += workout.caloriesBurned;
+      }
+    }
+  }
+
+  void _prepareRecentWorkouts() {
+    _recentWorkouts = [];
+
+    // Sort by completion date (most recent first)
+    final sortedWorkouts = List.from(_workoutHistory);
+    sortedWorkouts.sort((a, b) => b.completedAt.compareTo(a.completedAt));
+
+    // Take the 4 most recent workouts
+    final recentWorkouts = sortedWorkouts.take(4).toList();
+
+    // Format the workout data for display
+    for (var workout in recentWorkouts) {
+      final today = DateTime.now();
+      final yesterday = today.subtract(const Duration(days: 1));
+
+      // Format the date nicely
+      String dateText;
+      if (workout.completedAt.year == today.year &&
+          workout.completedAt.month == today.month &&
+          workout.completedAt.day == today.day) {
+        dateText = 'Today';
+      } else if (workout.completedAt.year == yesterday.year &&
+          workout.completedAt.month == yesterday.month &&
+          workout.completedAt.day == yesterday.day) {
+        dateText = 'Yesterday';
+      } else {
+        // Calculate days ago if within a week
+        final daysAgo = today.difference(workout.completedAt).inDays;
+        if (daysAgo < 7) {
+          dateText = '$daysAgo days ago';
+        } else {
+          // Format date as MMM dd (e.g., Apr 12)
+          dateText = DateFormat('MMM dd').format(workout.completedAt);
+        }
+      }
+
+      _recentWorkouts.add({
+        'name': workout.workoutName,
+        'date': dateText,
+        'time': '${workout.durationMinutes} min',
+        'calories': workout.caloriesBurned,
+        'completed': true, // All historical workouts are completed
+      });
+    }
+
+    // If we have less than 4 workouts, fill with some placeholder upcoming workouts
+    if (_recentWorkouts.length < 4) {
+      final placeholder = {
+        'name': 'Scheduled Workout',
+        'date': 'Upcoming',
+        'time': '30 min',
+        'calories': 250,
+        'completed': false,
+      };
+
+      while (_recentWorkouts.length < 4) {
+        _recentWorkouts.add(placeholder);
+      }
+    }
+  }
+
+  void _calculateGoals() {
+    // Get user's target workouts per week (default to 5 if not set)
+    final targetWorkoutsPerWeek = _user?.workoutsPerWeek ?? 5;
+
+    // Count workouts in the current week
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+
+    int weeklyWorkoutCount = 0;
+    int weeklyMinutes = 0;
+    int monthlyCalories = 0;
+
+    // Calculate weekly workouts and minutes
+    for (var workout in _workoutHistory) {
+      if (workout.completedAt.isAfter(startOfWeek)) {
+        weeklyWorkoutCount++;
+        weeklyMinutes += workout.durationMinutes;
+      }
+
+      // Calculate monthly calories (last 30 days)
+      if (workout.completedAt.isAfter(now.subtract(const Duration(days: 30)))) {
+        monthlyCalories += workout.caloriesBurned;
+      }
+    }
+
+    // Update goals based on real data
+    _goals = {
+      'weeklyWorkouts': {
+        'current': weeklyWorkoutCount,
+        'target': targetWorkoutsPerWeek,
+      },
+      'weeklyMinutes': {
+        'current': weeklyMinutes,
+        'target': 150, // WHO recommended weekly active minutes
+      },
+      'monthlyCalories': {
+        'current': monthlyCalories,
+        'target': 10000, // Sample target
+      },
+    };
+  }
+
+  void _prepareBodyStats() {
+    // Use real user data when available
+    if (_user != null) {
+      final weight = _user!.weight ?? 0.0;
+      final weightUnit = _user!.weightUnit ?? 'kg';
+
+      // Calculate BMI if both weight and height are available
+      String bmiValue = '0';
+      String bmiStatus = 'No data';
+
+      if (_user!.weight != null && _user!.height != null) {
+        final heightInMeters = _user!.heightUnit == 'cm'
+            ? _user!.height! / 100
+            : _user!.height! * 0.3048; // Convert feet to meters
+
+        if (heightInMeters > 0) {
+          final bmi = _user!.weight! / (heightInMeters * heightInMeters);
+          bmiValue = bmi.toStringAsFixed(1);
+
+          // Determine BMI status
+          if (bmi < 18.5) {
+            bmiStatus = 'Underweight';
+          } else if (bmi < 25) {
+            bmiStatus = 'Normal range';
+          } else if (bmi < 30) {
+            bmiStatus = 'Overweight';
+          } else {
+            bmiStatus = 'Obese';
+          }
+        }
+      }
+
+      // Update body stats with real data
+      _bodyStats = {
+        'weight': {
+          'value': weight.toStringAsFixed(1),
+          'unit': weightUnit,
+          'change': 'Current weight'
+        },
+        'bodyFat': {'value': '18.2', 'unit': '%', 'change': 'Tap to track'},
+        'muscleMass': {'value': '52.4', 'unit': '%', 'change': 'Tap to track'},
+        'bmi': {'value': bmiValue, 'unit': '', 'change': bmiStatus},
+      };
+    }
   }
 
   @override
@@ -99,67 +328,115 @@ class _ProgressScreenState extends State<ProgressScreen>
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              floating: true,
-              pinned: true,
-              backgroundColor: backgroundColor,
-              elevation: 0,
-              title: Text(
-                'Progress',
-                style: TextStyle(
-                  color: textPrimaryColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: Icon(
-                    Icons.calendar_today,
-                    color: textPrimaryColor,
-                  ),
-                  onPressed: () {
-                    // TODO: Implement calendar view
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Calendar view coming soon!'),
-                      ),
-                    );
-                  },
-                ),
-              ],
-              bottom: TabBar(
-                controller: _tabController,
-                tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
-                indicatorColor: AppColors.primary,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: textSecondaryColor,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+        child: _isLoading
+            ? Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildActivityChart(cardBackgroundColor, textPrimaryColor,
-                        textSecondaryColor, shadowColor),
-                    const SizedBox(height: 24),
-                    _buildGoalProgress(cardBackgroundColor, textPrimaryColor,
-                        textSecondaryColor, shadowColor),
-                    const SizedBox(height: 24),
-                    _buildWorkoutHistory(cardBackgroundColor, textPrimaryColor,
-                        textSecondaryColor, shadowColor),
-                    const SizedBox(height: 24),
-                    _buildBodyStats(cardBackgroundColor, textPrimaryColor,
-                        textSecondaryColor, shadowColor),
+                    const CircularProgressIndicator(color: AppColors.primary),
+                    const SizedBox(height: 16),
+                    Text('Loading your progress...',
+                        style: TextStyle(color: textPrimaryColor)),
                   ],
                 ),
-              ),
-            ),
-          ],
-        ),
+              )
+            : _errorMessage != null
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            color: Colors.red, size: 48),
+                        const SizedBox(height: 16),
+                        Text('Error: $_errorMessage',
+                            style: TextStyle(color: textPrimaryColor)),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: _loadData,
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary),
+                          child: const Text('Retry',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadData,
+                    color: AppColors.primary,
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverAppBar(
+                          floating: true,
+                          pinned: true,
+                          backgroundColor: backgroundColor,
+                          elevation: 0,
+                          title: Text(
+                            'Progress',
+                            style: TextStyle(
+                              color: textPrimaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          actions: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.calendar_today,
+                                color: textPrimaryColor,
+                              ),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Calendar view coming soon!'),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                          bottom: TabBar(
+                            controller: _tabController,
+                            tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
+                            indicatorColor: AppColors.primary,
+                            labelColor: AppColors.primary,
+                            unselectedLabelColor: textSecondaryColor,
+                          ),
+                        ),
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildActivityChart(
+                                    cardBackgroundColor,
+                                    textPrimaryColor,
+                                    textSecondaryColor,
+                                    shadowColor),
+                                const SizedBox(height: 24),
+                                _buildGoalProgress(
+                                    cardBackgroundColor,
+                                    textPrimaryColor,
+                                    textSecondaryColor,
+                                    shadowColor),
+                                const SizedBox(height: 24),
+                                _buildWorkoutHistory(
+                                    cardBackgroundColor,
+                                    textPrimaryColor,
+                                    textSecondaryColor,
+                                    shadowColor),
+                                const SizedBox(height: 24),
+                                _buildBodyStats(
+                                    cardBackgroundColor,
+                                    textPrimaryColor,
+                                    textSecondaryColor,
+                                    shadowColor),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
       ),
     );
   }
@@ -445,9 +722,7 @@ class _ProgressScreenState extends State<ProgressScreen>
         Center(
           child: TextButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('View all workouts coming soon!')),
-              );
+              Navigator.pushNamed(context, '/workout-history');
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             child: const Text(
@@ -526,7 +801,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                workout['completed'] ? 'Completed' : 'Missed',
+                workout['completed'] ? 'Completed' : 'Scheduled',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -562,16 +837,14 @@ class _ProgressScreenState extends State<ProgressScreen>
             ),
             TextButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Add measurement coming soon!')),
-                );
+                Navigator.pushNamed(context, '/edit-profile');
               },
               style: TextButton.styleFrom(foregroundColor: AppColors.primary),
               child: const Row(
                 children: [
-                  Icon(Icons.add, size: 16),
+                  Icon(Icons.edit, size: 16),
                   SizedBox(width: 4),
-                  Text('ADD'),
+                  Text('UPDATE'),
                 ],
               ),
             ),
@@ -583,9 +856,9 @@ class _ProgressScreenState extends State<ProgressScreen>
             Expanded(
               child: _buildStatCard(
                 'Weight',
-                '68.5',
-                'kg',
-                '+0.5 kg this month',
+                _bodyStats['weight']['value'],
+                _bodyStats['weight']['unit'],
+                _bodyStats['weight']['change'],
                 cardBackgroundColor,
                 textPrimaryColor,
                 textSecondaryColor,
@@ -596,9 +869,9 @@ class _ProgressScreenState extends State<ProgressScreen>
             Expanded(
               child: _buildStatCard(
                 'Body Fat',
-                '18.2',
-                '%',
-                '-1.3% this month',
+                _bodyStats['bodyFat']['value'],
+                _bodyStats['bodyFat']['unit'],
+                _bodyStats['bodyFat']['change'],
                 cardBackgroundColor,
                 textPrimaryColor,
                 textSecondaryColor,
@@ -613,9 +886,9 @@ class _ProgressScreenState extends State<ProgressScreen>
             Expanded(
               child: _buildStatCard(
                 'Muscle Mass',
-                '52.4',
-                '%',
-                '+0.8% this month',
+                _bodyStats['muscleMass']['value'],
+                _bodyStats['muscleMass']['unit'],
+                _bodyStats['muscleMass']['change'],
                 cardBackgroundColor,
                 textPrimaryColor,
                 textSecondaryColor,
@@ -626,9 +899,9 @@ class _ProgressScreenState extends State<ProgressScreen>
             Expanded(
               child: _buildStatCard(
                 'BMI',
-                '22.1',
-                '',
-                'Normal range',
+                _bodyStats['bmi']['value'],
+                _bodyStats['bmi']['unit'],
+                _bodyStats['bmi']['change'],
                 cardBackgroundColor,
                 textPrimaryColor,
                 textSecondaryColor,
@@ -651,6 +924,13 @@ class _ProgressScreenState extends State<ProgressScreen>
     Color textSecondaryColor,
     Color shadowColor,
   ) {
+    Color changeColor = textSecondaryColor;
+    if (change.contains('+')) {
+      changeColor = Colors.green;
+    } else if (change.contains('-')) {
+      changeColor = Colors.red;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -699,11 +979,7 @@ class _ProgressScreenState extends State<ProgressScreen>
             change,
             style: TextStyle(
               fontSize: 12,
-              color: change.contains('+')
-                  ? Colors.green
-                  : change.contains('-')
-                      ? Colors.red
-                      : textSecondaryColor,
+              color: changeColor,
               fontWeight: FontWeight.w500,
             ),
           ),

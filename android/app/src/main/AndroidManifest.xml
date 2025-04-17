@@ -25,14 +25,14 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             
-            <!-- Deep Link for OAuth Redirect -->
+            <!-- Deep Link for OAuth Redirect - Updated scheme to match new package name -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Accepts URIs that begin with "io.supabase.fitness://login-callback" -->
+                <!-- Updated to use the trainova namespace -->
                 <data 
-                    android:scheme="io.supabase.fitness"
+                    android:scheme="com.trainova.fitness"
                     android:host="login-callback" />
             </intent-filter>
         </activity>

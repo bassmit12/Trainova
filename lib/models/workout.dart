@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../widgets/message_overlay.dart';
 import 'exercise.dart';
 import 'workout_history.dart';
 
@@ -266,7 +265,7 @@ class Workout {
 
   // Calculate workout statistics based on workout history
   static Future<Map<String, dynamic>> calculateWorkoutStatistics(
-      {int daysBack = 30, BuildContext? context}) async {
+      {int daysBack = 30}) async {
     try {
       // Fetch workout history
       final List<WorkoutHistory> history =
@@ -292,19 +291,6 @@ class Workout {
       // Convert minutes to hours with one decimal place
       final double hoursSpent = totalMinutes / 60;
 
-      // If context was provided, show a success message
-      if (context != null && workoutCount > 0) {
-        MessageOverlay.showSuccess(
-          context,
-          message: 'Statistics updated for the last $daysBack days',
-        );
-      } else if (context != null && workoutCount == 0) {
-        MessageOverlay.showInfo(
-          context,
-          message: 'No workout data available for the last $daysBack days',
-        );
-      }
-
       return {
         'workoutCount': workoutCount,
         'caloriesBurned': totalCaloriesBurned,
@@ -312,12 +298,6 @@ class Workout {
         'timeRange': daysBack
       };
     } catch (e) {
-      if (context != null) {
-        MessageOverlay.showError(
-          context,
-          message: 'Error calculating statistics: ${e.toString()}',
-        );
-      }
       debugPrint('Error calculating workout statistics: $e');
       return {
         'workoutCount': 0,

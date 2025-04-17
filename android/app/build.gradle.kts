@@ -12,7 +12,7 @@ val keystorePropertiesFile = rootProject.file("key.properties")
 val useKeystore = keystorePropertiesFile.exists()
 
 android {
-    namespace = "com.example.ai_fitness_app_2"
+    namespace = "com.trainova.fitness"
     compileSdk = 35
     ndkVersion = "27.0.12077973"
 
@@ -33,8 +33,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.ai_fitness_app_2"
+        // Updated Application ID with trainova branding
+        applicationId = "com.trainova.fitness"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdk = 21
