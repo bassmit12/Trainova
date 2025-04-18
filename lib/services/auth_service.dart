@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -68,19 +70,32 @@ class AuthService extends ChangeNotifier {
         );
         return _currentUser;
       } else {
-        // Mobile platform sign-in using full OAuth flow
-        final GoogleSignIn googleSignIn = GoogleSignIn(
-          scopes: ['email', 'profile'],
-          // Don't set clientId on Android - it's not needed and causes the warning
-          // Instead, use serverClientId if you need server-side auth
-          serverClientId: SupabaseConfig
-              .googleClientIdWeb, // Web client ID works as server client ID
-        );
+        // Mobile platform sign-in using native Google Sign-In flow
+        late final GoogleSignIn googleSignIn;
 
-        // Sign out first to make sure we get a fresh sign-in
-        await googleSignIn.signOut();
+        if (Platform.isAndroid) {
+          // On Android, use the client ID from strings.xml
+          googleSignIn = GoogleSignIn(
+            serverClientId: SupabaseConfig.googleClientIdAndroid,
+            scopes: ['email', 'profile'],
+          );
+        } else {
+          // On iOS, use the web client ID
+          googleSignIn = GoogleSignIn(
+            serverClientId: SupabaseConfig.googleClientIdWeb,
+            scopes: ['email', 'profile'],
+          );
+        }
 
-        // Try to sign in
+        // Clear any existing sign-in first
+        try {
+          await googleSignIn.signOut();
+        } catch (e) {
+          // Ignore errors during sign out
+          print('Sign out before sign in error (safe to ignore): $e');
+        }
+
+        // Try to sign in with the native UI
         final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
         if (googleUser == null) {
           // User canceled the sign-in flow

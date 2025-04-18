@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS public.exercises (
   description text NOT NULL,
   sets integer NOT NULL DEFAULT 3,
   reps integer NOT NULL DEFAULT 10,
-  duration text NOT NULL DEFAULT '45s',
   image_url text NOT NULL DEFAULT 'assets/images/workout1.png',
   equipment text[] NOT NULL DEFAULT '{}',
   target_muscles text[] NOT NULL DEFAULT '{}',
@@ -228,16 +227,16 @@ BEGIN
     END IF;
 
     -- Create default exercises (8 standard ones)
-    INSERT INTO public.exercises (name, description, sets, reps, duration, equipment, target_muscles, difficulty, is_public, created_by)
+    INSERT INTO public.exercises (name, description, sets, reps, equipment, target_muscles, difficulty, is_public, created_by)
     VALUES
-      ('Push-up', 'Start in a plank position with your hands slightly wider than your shoulders. Lower your body until your chest nearly touches the floor, then push back up.', 3, 12, '45s', ARRAY['None'], ARRAY['Chest', 'Shoulders', 'Triceps'], 'intermediate', true, admin_id),
-      ('Dumbbell Bench Press', 'Lie on a flat bench holding a dumbbell in each hand. Press the weights upward until your arms are extended.', 4, 10, '1m', ARRAY['Dumbbells', 'Bench'], ARRAY['Chest', 'Triceps'], 'intermediate', true, admin_id),
-      ('Barbell Squat', 'Place a barbell across your upper back, bend your knees and lower your body until your thighs are parallel to the ground.', 4, 8, '1m 30s', ARRAY['Barbell', 'Squat Rack'], ARRAY['Quadriceps', 'Hamstrings', 'Glutes'], 'advanced', true, admin_id),
-      ('Bodyweight Squats', 'Stand with your feet shoulder-width apart. Bend your knees and lower your body until your thighs are parallel to the ground.', 3, 15, '45s', ARRAY['None'], ARRAY['Quadriceps', 'Hamstrings', 'Glutes'], 'beginner', true, admin_id),
-      ('Dumbbell Row', 'Bend over with a flat back, holding a dumbbell in one hand. Pull the dumbbell up to your side, then lower it back down.', 3, 12, '45s', ARRAY['Dumbbells'], ARRAY['Back', 'Biceps'], 'intermediate', true, admin_id),
-      ('Pull-ups', 'Hang from a bar with your palms facing away from you. Pull your body up until your chin clears the bar.', 3, 8, '1m', ARRAY['Pull-up Bar'], ARRAY['Back', 'Biceps', 'Shoulders'], 'advanced', true, admin_id),
-      ('Plank', 'Get into a pushup position, but rest on your forearms. Keep your body in a straight line from head to heels.', 3, 1, '1m', ARRAY['None'], ARRAY['Core', 'Shoulders'], 'beginner', true, admin_id),
-      ('Russian Twists', 'Sit on the floor with your knees bent and feet lifted. Twist your torso from side to side.', 3, 20, '45s', ARRAY['None', 'Optional: Dumbbell or Medicine Ball'], ARRAY['Core', 'Obliques'], 'intermediate', true, admin_id)
+      ('Push-up', 'Start in a plank position with your hands slightly wider than your shoulders. Lower your body until your chest nearly touches the floor, then push back up.', 3, 12, ARRAY['None'], ARRAY['Chest', 'Shoulders', 'Triceps'], 'intermediate', true, admin_id),
+      ('Dumbbell Bench Press', 'Lie on a flat bench holding a dumbbell in each hand. Press the weights upward until your arms are extended.', 4, 10, ARRAY['Dumbbells', 'Bench'], ARRAY['Chest', 'Triceps'], 'intermediate', true, admin_id),
+      ('Barbell Squat', 'Place a barbell across your upper back, bend your knees and lower your body until your thighs are parallel to the ground.', 4, 8, ARRAY['Barbell', 'Squat Rack'], ARRAY['Quadriceps', 'Hamstrings', 'Glutes'], 'advanced', true, admin_id),
+      ('Bodyweight Squats', 'Stand with your feet shoulder-width apart. Bend your knees and lower your body until your thighs are parallel to the ground.', 3, 15, ARRAY['None'], ARRAY['Quadriceps', 'Hamstrings', 'Glutes'], 'beginner', true, admin_id),
+      ('Dumbbell Row', 'Bend over with a flat back, holding a dumbbell in one hand. Pull the dumbbell up to your side, then lower it back down.', 3, 12, ARRAY['Dumbbells'], ARRAY['Back', 'Biceps'], 'intermediate', true, admin_id),
+      ('Pull-ups', 'Hang from a bar with your palms facing away from you. Pull your body up until your chin clears the bar.', 3, 8, ARRAY['Pull-up Bar'], ARRAY['Back', 'Biceps', 'Shoulders'], 'advanced', true, admin_id),
+      ('Plank', 'Get into a pushup position, but rest on your forearms. Keep your body in a straight line from head to heels.', 3, 1, ARRAY['None'], ARRAY['Core', 'Shoulders'], 'beginner', true, admin_id),
+      ('Russian Twists', 'Sit on the floor with your knees bent and feet lifted. Twist your torso from side to side.', 3, 20, ARRAY['None', 'Optional: Dumbbell or Medicine Ball'], ARRAY['Core', 'Obliques'], 'intermediate', true, admin_id)
     RETURNING id INTO exercise_ids;
 
     -- Create first public workout (Full Body Strength)
