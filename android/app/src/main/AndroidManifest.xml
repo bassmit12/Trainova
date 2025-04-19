@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.trainova.fitness">
     <application
         android:label="Trainova"
         android:name="${applicationName}"
@@ -30,9 +31,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Accepts URIs that begin with "io.supabase.fitness://login-callback" -->
+                <!-- Updated URI scheme to match package name -->
                 <data 
-                    android:scheme="io.supabase.fitness"
+                    android:scheme="com.trainova.fitness"
                     android:host="login-callback" />
             </intent-filter>
         </activity>

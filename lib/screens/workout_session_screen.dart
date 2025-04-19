@@ -671,25 +671,6 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                               );
                             }).toList(),
                           ),
-                          if (exercise.equipment.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            Text(
-                              'Equipment Needed',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: textPrimaryColor,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              exercise.getEquipmentString(),
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: textPrimaryColor,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),

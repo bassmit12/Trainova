@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Google Sign-In configuration -->
+    <string name="default_web_client_id">369475473502-5838krq6lio4ko2r63fs8t0l4buuv680.apps.googleusercontent.com</string>
+    <string name="default_android_client_id_debug">369475473502-i7d15gm4v0crnrhr2dcq5p370ba1lrb5.apps.googleusercontent.com</string>
+    <string name="default_android_client_id_release">369475473502-015rktae80k9k5gtgtc1a60co84itqgk.apps.googleusercontent.com</string>
+</resources>

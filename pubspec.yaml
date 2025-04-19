@@ -2,7 +2,7 @@ name: ai_fitness_app_2
 description: "An AI-powered fitness app"
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 1.0.3+1
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

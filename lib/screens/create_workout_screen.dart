@@ -532,7 +532,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                                   style: TextStyle(color: textPrimaryColor),
                                 ),
                                 subtitle: Text(
-                                  '${exercise.sets} sets • ${exercise.reps} reps • ${exercise.duration}',
+                                  '${exercise.sets} sets • ${exercise.reps} reps',
                                   style: TextStyle(color: textSecondaryColor),
                                 ),
                                 trailing: IconButton(

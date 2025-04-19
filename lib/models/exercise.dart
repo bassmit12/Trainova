@@ -8,9 +8,7 @@ class Exercise {
   final String description;
   final int sets;
   final int reps;
-  final String duration; // e.g., "30s", "1m"
   final String imageUrl;
-  final List<String> equipment;
   final List<String> targetMuscles;
   final String difficulty; // "beginner", "intermediate", "advanced"
   final bool isPublic;
@@ -22,9 +20,7 @@ class Exercise {
     required this.description,
     required this.sets,
     required this.reps,
-    required this.duration,
     required this.imageUrl,
-    required this.equipment,
     required this.targetMuscles,
     required this.difficulty,
     this.isPublic = false,
@@ -38,9 +34,7 @@ class Exercise {
     String? description,
     int? sets,
     int? reps,
-    String? duration,
     String? imageUrl,
-    List<String>? equipment,
     List<String>? targetMuscles,
     String? difficulty,
     bool? isPublic,
@@ -52,9 +46,7 @@ class Exercise {
       description: description ?? this.description,
       sets: sets ?? this.sets,
       reps: reps ?? this.reps,
-      duration: duration ?? this.duration,
       imageUrl: imageUrl ?? this.imageUrl,
-      equipment: equipment ?? this.equipment,
       targetMuscles: targetMuscles ?? this.targetMuscles,
       difficulty: difficulty ?? this.difficulty,
       isPublic: isPublic ?? this.isPublic,
@@ -70,9 +62,7 @@ class Exercise {
       description: map['description'],
       sets: map['sets'],
       reps: map['reps'],
-      duration: map['duration'],
       imageUrl: map['image_url'],
-      equipment: List<String>.from(map['equipment'] ?? []),
       targetMuscles: List<String>.from(map['target_muscles'] ?? []),
       difficulty: map['difficulty'],
       isPublic: map['is_public'] ?? false,
@@ -87,9 +77,7 @@ class Exercise {
       'description': description,
       'sets': sets,
       'reps': reps,
-      'duration': duration,
       'image_url': imageUrl,
-      'equipment': equipment,
       'target_muscles': targetMuscles,
       'difficulty': difficulty,
       'is_public': isPublic,
@@ -102,7 +90,7 @@ class Exercise {
       Exercise exercise) async {
     final supabase = Supabase.instance.client;
 
-    // Find exercises targeting similar muscle groups but with different equipment
+    // Find exercises targeting similar muscle groups
     final response = await supabase
         .from('exercises')
         .select()
@@ -129,13 +117,6 @@ class Exercise {
     });
 
     return alternatives;
-  }
-
-  // Method to get string of equipment needed
-  String getEquipmentString() {
-    if (equipment.isEmpty) return 'No equipment';
-    if (equipment.length == 1 && equipment[0] == 'None') return 'No equipment';
-    return equipment.join(', ');
   }
 
   // Method to get muscle groups targeted as a string

@@ -256,7 +256,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${exercise.sets} sets • ${exercise.reps} reps • ${exercise.duration}',
+                      '${exercise.sets} sets • ${exercise.reps} reps',
                       style: TextStyle(
                         fontSize: 14,
                         color: textSecondaryColor,
@@ -943,7 +943,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '${exercise.sets} ${exercise.sets == 1 ? 'set' : 'sets'} • ${exercise.reps} ${exercise.reps == 1 ? 'rep' : 'reps'} • ${exercise.duration}',
+                        '${exercise.sets} ${exercise.sets == 1 ? 'set' : 'sets'} • ${exercise.reps} ${exercise.reps == 1 ? 'rep' : 'reps'}',
                         style: TextStyle(
                           color: textSecondaryColor,
                         ),
@@ -1087,43 +1087,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   }
 
   String _estimateTotalTime() {
-    // Calculate estimated time based on exercise durations or use workout duration
-    int totalMinutes = 0;
-    bool hasDuration = true;
-
-    // Try to calculate from exercises
-    for (final exercise in _currentExercises) {
-      final durationText = exercise.duration;
-      final regex = RegExp(r'(\d+)');
-      final match = regex.firstMatch(durationText);
-
-      if (match != null) {
-        try {
-          totalMinutes += int.parse(match.group(1)!);
-        } catch (e) {
-          hasDuration = false;
-          break;
-        }
-      } else {
-        hasDuration = false;
-        break;
-      }
-    }
-
-    // If we can't calculate from exercises, use workout duration
-    if (!hasDuration) {
-      return widget.workout.duration;
-    }
-
-    // Format the total time
-    if (totalMinutes < 60) {
-      return '$totalMinutes min';
-    } else {
-      final hours = totalMinutes ~/ 60;
-      final mins = totalMinutes % 60;
-      return hours > 0
-          ? '$hours h${mins > 0 ? ' $mins min' : ''}'
-          : '$mins min';
-    }
+    // Since we no longer have exercise durations, we'll just use workout duration
+    return widget.workout.duration;
   }
 }

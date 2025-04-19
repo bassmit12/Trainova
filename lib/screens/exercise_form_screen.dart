@@ -26,25 +26,9 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   final _descriptionController = TextEditingController();
   final _setsController = TextEditingController();
   final _repsController = TextEditingController();
-  final _durationController = TextEditingController();
 
   String _selectedDifficulty = 'intermediate';
   final List<String> _difficulties = ['beginner', 'intermediate', 'advanced'];
-
-  List<String> _selectedEquipment = ['None'];
-  final List<String> _equipmentOptions = [
-    'None',
-    'Dumbbells',
-    'Barbell',
-    'Kettlebell',
-    'Resistance bands',
-    'Yoga mat',
-    'Pull-up bar',
-    'Bench',
-    'Exercise ball',
-    'Jump rope',
-    'Foam roller',
-  ];
 
   List<String> _selectedMuscles = [];
   final List<String> _muscleGroups = [
@@ -89,12 +73,8 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
       _descriptionController.text = exercise.description;
       _setsController.text = exercise.sets.toString();
       _repsController.text = exercise.reps.toString();
-      _durationController.text = exercise.duration;
 
       _selectedDifficulty = exercise.difficulty;
-      _selectedEquipment = exercise.equipment.isNotEmpty
-          ? List.from(exercise.equipment)
-          : ['None'];
       _selectedMuscles = List.from(exercise.targetMuscles);
 
       _imageUrl = exercise.imageUrl.isNotEmpty ? exercise.imageUrl : null;
@@ -103,7 +83,6 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
       // Creating a new exercise - set defaults
       _setsController.text = '3';
       _repsController.text = '12';
-      _durationController.text = '45s';
     }
   }
 
@@ -123,7 +102,6 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
     _descriptionController.dispose();
     _setsController.dispose();
     _repsController.dispose();
-    _durationController.dispose();
     super.dispose();
   }
 
@@ -187,12 +165,6 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
     setState(() => _isSaving = true);
 
     try {
-      // Clean equipment list
-      final equipment =
-          _selectedEquipment.contains('None') && _selectedEquipment.length == 1
-              ? ['None']
-              : _selectedEquipment.where((e) => e != 'None').toList();
-
       // Create exercise object
       final exercise = Exercise(
         id: widget.exercise?.id ?? 'new',
@@ -200,9 +172,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
         description: _descriptionController.text.trim(),
         sets: int.parse(_setsController.text.trim()),
         reps: int.parse(_repsController.text.trim()),
-        duration: _durationController.text.trim(),
         imageUrl: _imageUrl ?? '',
-        equipment: equipment,
         targetMuscles: _selectedMuscles,
         difficulty: _selectedDifficulty,
         isPublic: _isPublic,
@@ -392,7 +362,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Sets, Reps and Duration Row
+            // Sets and Reps Row
             Row(
               children: [
                 // Sets
@@ -415,7 +385,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
                 // Reps
                 Expanded(
                   child: TextFormField(
@@ -428,24 +398,6 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                     ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Duration
-                Expanded(
-                  child: TextFormField(
-                    controller: _durationController,
-                    decoration: const InputDecoration(
-                      labelText: 'Duration',
-                      border: OutlineInputBorder(),
-                      hintText: 'e.g. 45s',
-                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Required';
@@ -486,58 +438,6 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                     color: _selectedDifficulty == difficulty
                         ? Colors.white
                         : Colors.black,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-
-            // Equipment
-            const Text(
-              'Equipment Required',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _equipmentOptions.map((equipment) {
-                final isSelected = _selectedEquipment.contains(equipment);
-                // If "None" is selected, disable other options
-                final isDisabled = equipment != 'None' &&
-                    _selectedEquipment.contains('None') &&
-                    _selectedEquipment.length == 1;
-                // If any other option is selected, disable "None"
-                final isNoneDisabled = equipment == 'None' &&
-                    _selectedEquipment.any((e) => e != 'None');
-
-                return FilterChip(
-                  label: Text(equipment),
-                  selected: isSelected,
-                  onSelected: (isDisabled || isNoneDisabled)
-                      ? null
-                      : (selected) {
-                          setState(() {
-                            if (selected) {
-                              _selectedEquipment.add(equipment);
-                            } else {
-                              _selectedEquipment.remove(equipment);
-                              // If no equipment is selected, default back to "None"
-                              if (_selectedEquipment.isEmpty) {
-                                _selectedEquipment.add('None');
-                              }
-                            }
-                          });
-                        },
-                  selectedColor: AppColors.primary.withOpacity(0.7),
-                  backgroundColor: (isDisabled || isNoneDisabled)
-                      ? Colors.grey.shade300
-                      : Colors.grey.shade200,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
                   ),
                 );
               }).toList(),

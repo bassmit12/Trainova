@@ -69,34 +69,58 @@ class AuthService extends ChangeNotifier {
         return _currentUser;
       } else {
         // Mobile platform sign-in using full OAuth flow
-        final GoogleSignIn googleSignIn = GoogleSignIn(
-          scopes: ['email', 'profile'],
-          // Don't set clientId on Android - it's not needed and causes the warning
-          // Instead, use serverClientId if you need server-side auth
-          serverClientId: SupabaseConfig
-              .googleClientIdWeb, // Web client ID works as server client ID
-        );
+        final GoogleSignIn googleSignIn;
+
+        if (kDebugMode) {
+          // Debug build (emulator) - use the debug client ID
+          googleSignIn = GoogleSignIn(
+            scopes: ['email', 'profile'],
+            clientId: SupabaseConfig.googleClientIdAndroidDebug,
+            serverClientId: SupabaseConfig.googleClientIdWeb,
+          );
+          print(
+              'DEBUG: Using Android debug client ID: ${SupabaseConfig.googleClientIdAndroidDebug}');
+          print(
+              'DEBUG: Mobile redirect URL: ${SupabaseConfig.mobileRedirectUrl}');
+        } else {
+          // Release build - use the release client ID
+          googleSignIn = GoogleSignIn(
+            scopes: ['email', 'profile'],
+            clientId: SupabaseConfig.googleClientIdAndroidRelease,
+            serverClientId: SupabaseConfig.googleClientIdWeb,
+          );
+          print(
+              'RELEASE: Using Android release client ID: ${SupabaseConfig.googleClientIdAndroidRelease}');
+          print(
+              'RELEASE: Mobile redirect URL: ${SupabaseConfig.mobileRedirectUrl}');
+        }
 
         // Sign out first to make sure we get a fresh sign-in
         await googleSignIn.signOut();
+        print('Google SignIn: Signed out previous session');
 
         // Try to sign in
+        print('Google SignIn: Attempting to sign in...');
         final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
         if (googleUser == null) {
           // User canceled the sign-in flow
+          print('Google SignIn: User canceled the sign-in flow');
           return null;
         }
 
         // Get authentication data from Google
+        print('Google SignIn: User signed in: ${googleUser.email}');
         final GoogleSignInAuthentication googleAuth =
             await googleUser.authentication;
         final idToken = googleAuth.idToken;
         final accessToken = googleAuth.accessToken;
 
         if (idToken == null) {
+          print('Google SignIn: Failed to get ID token from Google');
           throw Exception('Failed to get ID token from Google');
         }
 
+        print('Google SignIn: Successfully retrieved tokens');
         // Sign in to Supabase with the Google token
         final response = await _client.auth.signInWithIdToken(
           provider: OAuthProvider.google,
@@ -106,17 +130,23 @@ class AuthService extends ChangeNotifier {
 
         // Update current user from the response
         if (response.user != null) {
+          print('Supabase: Successfully signed in with Google token');
           _currentUser = UserModel.fromJson(response.user!.toJson());
           notifyListeners();
 
           // Fetch the complete profile data
           await getCurrentUserProfile();
+        } else {
+          print(
+              'Supabase: Failed to sign in with Google token - no user returned');
         }
 
         return _currentUser;
       }
     } catch (e) {
       print('Error signing in with Google: $e');
+      // Print stack trace for more detailed error information
+      print(StackTrace.current);
       rethrow;
     }
   }
