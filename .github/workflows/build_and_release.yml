@@ -32,6 +32,8 @@ jobs:
       #1 Checkout Repository
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history to properly check tags
 
       #2 Setup Java
       - name: Set Up Java
@@ -86,24 +88,42 @@ jobs:
         run: |
           version=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
           echo "VERSION=$version" >> $GITHUB_ENV
+          echo "Extracted version: $version"
 
-      #10 Check if Tag Exists
+      #10 Better Tag Existence Check
       - name: Check if Tag Exists
         id: check_tag
         run: |
-          if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
+          # Fetch all tags
+          git fetch --tags
+          
+          # Check if tag exists using a more reliable method
+          tag_name="v${{ env.VERSION }}"
+          if git tag -l "$tag_name" | grep -q "$tag_name"; then
             echo "TAG_EXISTS=true" >> $GITHUB_ENV
+            echo "Tag $tag_name already exists"
           else
             echo "TAG_EXISTS=false" >> $GITHUB_ENV
+            echo "Tag $tag_name does not exist"
           fi
 
-      #11 Modify Tag if it Exists
-      - name: Modify Tag
+      #11 Modify Version if Tag Exists
+      - name: Modify Version if Tag Exists
         if: env.TAG_EXISTS == 'true'
-        id: modify_tag
+        id: modify_version
         run: |
-          new_version="${{ env.VERSION }}-build-${{ github.run_number }}"
+          original_version="${{ env.VERSION }}"
+          new_version="${original_version}-build-${{ github.run_number }}"
+          echo "Modified version from $original_version to $new_version"
           echo "VERSION=$new_version" >> $GITHUB_ENV
+          
+          # Double-check that the new tag doesn't exist
+          if git tag -l "v$new_version" | grep -q "v$new_version"; then
+            echo "Error: Modified tag v$new_version also exists!"
+            exit 1
+          else
+            echo "Modified tag v$new_version is available"
+          fi
         
       #12 Create Release
       - name: Create Release
