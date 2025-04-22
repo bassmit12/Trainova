@@ -1,79 +1,72 @@
-name: Build and Release APK
+name: Build and Release
 
 on:
   push:
-    branches: [main, master]
-  # Allows you to run this workflow manually from the Actions tab
+    tags:
+      - 'v*'
   workflow_dispatch:
-
-# Add permissions needed to create releases
-permissions:
-  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - uses: actions/checkout@v3
-
-      # Set up Java environment
-      - uses: actions/setup-java@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Java
+        uses: actions/setup-java@v3
         with:
-          distribution: "zulu"
-          java-version: "17"
-
-      # Set up Flutter environment
-      - uses: subosito/flutter-action@v2
+          distribution: 'zulu'
+          java-version: '17'
+      
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.29.3"
-          channel: "stable"
-
-      # Get Flutter dependencies
-      - name: Get dependencies
+          flutter-version: '3.19.0'
+          channel: 'stable'
+      
+      - name: Install dependencies
         run: flutter pub get
-
-      # Setup keystore
-      - name: Setup keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
-          echo "storeFile=keystore.jks" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-
-      # Build APK
-      - name: Build APK
-        run: flutter build apk --release
-
-      # Get the version from pubspec.yaml
+      
       - name: Extract version
         id: version
         run: |
-          VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //g')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      # Create GitHub Release
+          VERSION=$(grep -E '^version:' pubspec.yaml | sed -E 's/version: +(.+)/\1/')
+          if [[ $VERSION =~ ([0-9]+\.[0-9]+\.[0-9]+)\+([0-9]+) ]]; then
+            RELEASE_VERSION="${BASH_REMATCH[1]}"
+            BUILD_NUMBER="${BASH_REMATCH[2]}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "release_version=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+            echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          else
+            echo "Error: Could not parse version string correctly"
+            exit 1
+          fi
+        shell: bash
+      
+      - name: Build APK
+        run: flutter build apk --release
+      
+      - name: Rename APK
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk Trainova-${{ steps.version.outputs.release_version }}.apk
+        shell: bash
+      
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ env.VERSION }}
-          release_name: Release v${{ env.VERSION }}
+          files: Trainova-${{ steps.version.outputs.release_version }}.apk
+          tag_name: v${{ steps.version.outputs.release_version }}
+          name: Trainova v${{ steps.version.outputs.release_version }}
+          body: |
+            Release of Trainova version ${{ steps.version.outputs.release_version }}
+            
+            ### What's New
+            - Auto-update functionality
+            - Bug fixes and performance improvements
           draft: false
           prerelease: false
-
-      # Upload APK to the release
-      - name: Upload APK to Release
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/app/outputs/flutter-apk/app-release.apk
-          asset_name: ai_fitness_app_2-v${{ env.VERSION }}.apk
-          asset_content_type: application/vnd.android.package-archive
