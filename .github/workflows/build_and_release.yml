@@ -56,11 +56,23 @@ jobs:
         run: |
           echo "flutter.sdk=/opt/hostedtoolcache/flutter/stable-3.29.3-x64" > android/local.properties
 
-      #6 Build Release APK with debug signing
-      - name: Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons --debug-signing-config
+      #6 Create a temporary key.properties for debug signing 
+      - name: Setup debug keystore for release build
+        run: |
+          echo "Using debug keystore for release build"
+          mkdir -p $HOME/.android
+          keytool -genkeypair -alias androiddebugkey -keypass android -keystore $HOME/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000
+          echo "storePassword=android" > android/key.properties
+          echo "keyPassword=android" >> android/key.properties
+          echo "keyAlias=androiddebugkey" >> android/key.properties
+          echo "storeFile=$HOME/.android/debug.keystore" >> android/key.properties
+          cat android/key.properties
 
-      #7 Upload Release Artifacts
+      #7 Build Release APK
+      - name: Build Release APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      #8 Upload Release Artifacts
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -68,14 +80,14 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/app-release.apk
 
-      #8 Extract Version
+      #9 Extract Version
       - name: Extract version from pubspec.yaml
         id: extract_version
         run: |
           version=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
           echo "VERSION=$version" >> $GITHUB_ENV
 
-      #9 Check if Tag Exists
+      #10 Check if Tag Exists
       - name: Check if Tag Exists
         id: check_tag
         run: |
@@ -85,7 +97,7 @@ jobs:
             echo "TAG_EXISTS=false" >> $GITHUB_ENV
           fi
 
-      #10 Modify Tag if it Exists
+      #11 Modify Tag if it Exists
       - name: Modify Tag
         if: env.TAG_EXISTS == 'true'
         id: modify_tag
@@ -93,7 +105,7 @@ jobs:
           new_version="${{ env.VERSION }}-build-${{ github.run_number }}"
           echo "VERSION=$new_version" >> $GITHUB_ENV
         
-      #11 Create Release
+      #12 Create Release
       - name: Create Release
         if: github.event_name == 'push' || github.event.inputs.create_release == 'true'
         uses: ncipollo/release-action@v1
