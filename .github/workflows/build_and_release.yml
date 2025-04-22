@@ -32,7 +32,7 @@ jobs:
       - name: Set Up Java
         uses: actions/setup-java@v3.12.0
         with:
-          distribution: "temurin"  # Changed to Temurin (Eclipse Adoptium)
+          distribution: "temurin"
           java-version: "17"
 
       #3 Setup Flutter
@@ -46,47 +46,16 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      #5 Debug Android Setup
-      - name: Debug Android Setup
+      #5 Create Local Properties
+      - name: Create Local Properties
         run: |
-          cd android
-          cat build.gradle.kts
-          ls -la app/
-          if [ -f "app/build.gradle.kts" ]; then
-            cat app/build.gradle.kts
-          fi
-          
-      #6 Skip Signing Setup for Debugging
-      - name: Create Debug Build Config
-        run: |
-          mkdir -p android/app/src/debug
-          echo "def localProperties = new Properties()" > android/app/build.gradle.kts.new
-          echo "def localPropertiesFile = rootProject.file('local.properties')" >> android/app/build.gradle.kts.new
-          echo "if (localPropertiesFile.exists()) {" >> android/app/build.gradle.kts.new
-          echo "    localPropertiesFile.withReader('UTF-8') { reader ->" >> android/app/build.gradle.kts.new
-          echo "        localProperties.load(reader)" >> android/app/build.gradle.kts.new
-          echo "    }" >> android/app/build.gradle.kts.new
-          echo "}" >> android/app/build.gradle.kts.new
-          echo "" >> android/app/build.gradle.kts.new
-          
-          # Copy the rest of the original file excluding the signing configuration
-          cat android/app/build.gradle.kts | grep -v "signingConfig" >> android/app/build.gradle.kts.new
-          
-          # Replace original with new version
-          mv android/app/build.gradle.kts.new android/app/build.gradle.kts
-          
-          # Create an empty local.properties file
-          echo "flutter.sdk=/home/runner/hostedtoolcache/flutter" > android/local.properties
-          
-          # Show the modified build file
-          echo "Modified build.gradle.kts:"
-          cat android/app/build.gradle.kts
+          echo "flutter.sdk=/opt/hostedtoolcache/flutter/stable-3.29.3-x64" > android/local.properties
 
-      #7 Building Debug APK
+      #6 Build Debug APK
       - name: Build Debug APK
-        run: flutter build apk --debug
+        run: flutter build apk --debug --no-tree-shake-icons
 
-      #8 Upload Debug Artifacts
+      #7 Upload Debug Artifacts
       - name: Upload Debug Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -94,14 +63,14 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/app-debug.apk
 
-      #9 Extract Version
+      #8 Extract Version
       - name: Extract version from pubspec.yaml
         id: extract_version
         run: |
           version=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
           echo "VERSION=$version" >> $GITHUB_ENV
 
-      #10 Check if Tag Exists
+      #9 Check if Tag Exists
       - name: Check if Tag Exists
         id: check_tag
         run: |
@@ -111,7 +80,7 @@ jobs:
             echo "TAG_EXISTS=false" >> $GITHUB_ENV
           fi
 
-      #11 Modify Tag if it Exists
+      #10 Modify Tag if it Exists
       - name: Modify Tag
         if: env.TAG_EXISTS == 'true'
         id: modify_tag
@@ -119,7 +88,7 @@ jobs:
           new_version="${{ env.VERSION }}-build-${{ github.run_number }}"
           echo "VERSION=$new_version" >> $GITHUB_ENV
         
-      #12 Create Release
+      #11 Create Release
       - name: Create Release
         if: github.event_name == 'push' || github.event.inputs.create_release == 'true'
         uses: ncipollo/release-action@v1
