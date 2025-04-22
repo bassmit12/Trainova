@@ -32,7 +32,7 @@ jobs:
       - name: Set Up Java
         uses: actions/setup-java@v3.12.0
         with:
-          distribution: "oracle"
+          distribution: "temurin"  # Changed to Temurin (Eclipse Adoptium)
           java-version: "17"
 
       #3 Setup Flutter
@@ -46,47 +46,53 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      #5 Debug Workspace
-      - name: Debug Workspace
+      #5 Debug Android Setup
+      - name: Debug Android Setup
         run: |
-          pwd
-          ls -la
-          ls -la android/
-          echo "Working directory: $(pwd)"
-
-      #5 Setup Keystore
-      - name: Decode Keystore
-        run: |
-          mkdir -p android/app
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
-          echo "Keystore created at: $(pwd)/android/app/upload-keystore.jks"
-          ls -la android/app/
+          cd android
+          cat build.gradle.kts
+          ls -la app/
+          if [ -f "app/build.gradle.kts" ]; then
+            cat app/build.gradle.kts
+          fi
           
-      - name: Create key.properties
+      #6 Skip Signing Setup for Debugging
+      - name: Create Debug Build Config
         run: |
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=upload-keystore.jks" >> android/key.properties
-          echo "Created key.properties:"
-          cat android/key.properties
+          mkdir -p android/app/src/debug
+          echo "def localProperties = new Properties()" > android/app/build.gradle.kts.new
+          echo "def localPropertiesFile = rootProject.file('local.properties')" >> android/app/build.gradle.kts.new
+          echo "if (localPropertiesFile.exists()) {" >> android/app/build.gradle.kts.new
+          echo "    localPropertiesFile.withReader('UTF-8') { reader ->" >> android/app/build.gradle.kts.new
+          echo "        localProperties.load(reader)" >> android/app/build.gradle.kts.new
+          echo "    }" >> android/app/build.gradle.kts.new
+          echo "}" >> android/app/build.gradle.kts.new
+          echo "" >> android/app/build.gradle.kts.new
+          
+          # Copy the rest of the original file excluding the signing configuration
+          cat android/app/build.gradle.kts | grep -v "signingConfig" >> android/app/build.gradle.kts.new
+          
+          # Replace original with new version
+          mv android/app/build.gradle.kts.new android/app/build.gradle.kts
+          
+          # Create an empty local.properties file
+          echo "flutter.sdk=/home/runner/hostedtoolcache/flutter" > android/local.properties
+          
+          # Show the modified build file
+          echo "Modified build.gradle.kts:"
+          cat android/app/build.gradle.kts
 
-      #6 Building APK
-      - name: Build APK
-        run: flutter build apk --release --verbose
+      #7 Building Debug APK
+      - name: Build Debug APK
+        run: flutter build apk --debug
 
-      #7 Building App Bundle (aab)
-      - name: Build appBundle
-        run: flutter build appbundle
-
-      #8 Upload Artifacts
-      - name: Upload Artifacts
+      #8 Upload Debug Artifacts
+      - name: Upload Debug Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Releases
+          name: Debug-Releases
           path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
+            build/app/outputs/flutter-apk/app-debug.apk
 
       #9 Extract Version
       - name: Extract version from pubspec.yaml
@@ -118,15 +124,17 @@ jobs:
         if: github.event_name == 'push' || github.event.inputs.create_release == 'true'
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "build/app/outputs/flutter-apk/app-release.apk,build/app/outputs/bundle/release/app-release.aab"
+          artifacts: "build/app/outputs/flutter-apk/app-debug.apk"
           tag: v${{ env.VERSION }}
-          name: "Trainova v${{ env.VERSION }}"
+          name: "Trainova v${{ env.VERSION }} (Debug)"
           body: |
-            Release of Trainova version ${{ env.VERSION }}
+            Debug release of Trainova version ${{ env.VERSION }}
             
             ### What's New
             - Auto-update functionality
             - Bug fixes and performance improvements
+            
+            Note: This is a debug build for testing purposes.
           draft: false
-          prerelease: false
+          prerelease: true
           token: ${{ secrets.GITHUB_TOKEN }}
