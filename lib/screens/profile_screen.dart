@@ -12,6 +12,7 @@ import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'workout_history_screen.dart';
 import 'goals_screen.dart'; // Add import for GoalsScreen
+import 'app_update_screen.dart'; // Add import for AppUpdateScreen
 import '../widgets/message_overlay.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -366,6 +367,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const WorkoutHistoryScreen(),
+                ),
+              );
+            },
+            cardBackgroundColor: cardBackgroundColor,
+            textPrimaryColor: textPrimaryColor,
+            textSecondaryColor: textSecondaryColor,
+          ),
+          _buildActionItem(
+            context,
+            'App Updates',
+            Icons.system_update,
+            () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const AppUpdateScreen(),
                 ),
               );
             },

@@ -3,18 +3,22 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/supabase_config.dart';
+import 'config/app_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/workout_screen.dart';
 import 'screens/progress_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/welcome_screen.dart';
+import 'screens/app_update_screen.dart';
 import 'services/auth_service.dart';
 import 'services/workout_session_service.dart';
 import 'widgets/bottom_nav_bar.dart';
+import 'widgets/update_notification_widget.dart';
 import 'utils/app_colors.dart';
 import 'providers/theme_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/update_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +48,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
             create: (_) => WorkoutSessionService()..initialize()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(
+          create: (_) => UpdateProvider(
+            githubOwner: AppConfig.githubOwner,
+            githubRepo: AppConfig.githubRepo,
+          ),
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -104,9 +114,36 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Check for updates when the app starts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForUpdates();
+    });
+  }
+
+  Future<void> _checkForUpdates() async {
+    final updateProvider = Provider.of<UpdateProvider>(context, listen: false);
+    await updateProvider.checkForUpdate();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final updateProvider = Provider.of<UpdateProvider>(context);
+    
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: Stack(
+        children: [
+          _screens[_currentIndex],
+          if (updateProvider.updateAvailable)
+            Positioned(
+              bottom: 70, // Position above the bottom nav bar
+              left: 0,
+              right: 0,
+              child: const UpdateNotificationWidget(),
+            ),
+        ],
+      ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: (index) {

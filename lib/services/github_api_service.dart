@@ -14,15 +14,37 @@ class GitHubApiService {
   });
 
   Future<Map<String, dynamic>> getLatestRelease() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/repos/$owner/$repository/releases/latest'),
-      headers: {'Accept': 'application/vnd.github.v3+json'},
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/repos/$owner/$repository/releases/latest'),
+        headers: {'Accept': 'application/vnd.github.v3+json'},
+      );
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to load latest release: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 404) {
+        // If no releases are found, return a dummy response so the app won't crash
+        print('No releases found for $owner/$repository');
+        return {
+          'tag_name': '0.0.0',
+          'body': 'No releases available yet',
+          'html_url': 'https://github.com/$owner/$repository/releases',
+          'published_at': DateTime.now().toIso8601String(),
+          'assets': [],
+        };
+      } else {
+        throw Exception('Failed to load latest release: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching latest release: $e');
+      // Return a dummy response to prevent crashes
+      return {
+        'tag_name': '0.0.0',
+        'body': 'Error fetching releases',
+        'html_url': 'https://github.com/$owner/$repository/releases',
+        'published_at': DateTime.now().toIso8601String(),
+        'assets': [],
+      };
     }
   }
 
@@ -66,6 +88,7 @@ class GitHubApiService {
       'latestVersion': latestVersion,
       'releaseNotes': releaseData['body'],
       'downloadUrl': downloadUrl,
+      'htmlUrl': releaseData['html_url'], // Include the HTML URL for the release page
       'releaseDate': releaseData['published_at'],
     };
   }
