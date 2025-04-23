@@ -84,6 +84,7 @@ class AuthService extends ChangeNotifier {
               'DEBUG: Mobile redirect URL: ${SupabaseConfig.mobileRedirectUrl}');
         } else {
           // Release build - use the release client ID
+          // For GitHub Actions builds, consider using a different client ID if needed
           googleSignIn = GoogleSignIn(
             scopes: ['email', 'profile'],
             clientId: SupabaseConfig.googleClientIdAndroidRelease,
@@ -114,6 +115,9 @@ class AuthService extends ChangeNotifier {
             await googleUser.authentication;
         final idToken = googleAuth.idToken;
         final accessToken = googleAuth.accessToken;
+
+        print('Google SignIn: ID token: ${idToken?.substring(0, 10)}...');
+        print('Google SignIn: Access token: ${accessToken?.substring(0, 10)}...');
 
         if (idToken == null) {
           print('Google SignIn: Failed to get ID token from Google');
