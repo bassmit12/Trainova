@@ -28,12 +28,21 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             
-            <!-- Deep Link for OAuth Redirect -->
+            <!-- Deep Link for OAuth Redirect - Fixed for Supabase -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Updated URI scheme to match package name -->
+                <data 
+                    android:scheme="io.supabase.flutterquickstart"
+                    android:host="login-callback" />
+            </intent-filter>
+            
+            <!-- Additional Deep Link for package-based redirection -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data 
                     android:scheme="com.trainova.fitness"
                     android:host="login-callback" />
