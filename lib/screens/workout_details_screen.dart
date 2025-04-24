@@ -17,7 +17,7 @@ class WorkoutDetailsScreen extends StatefulWidget {
   final Workout workout;
 
   const WorkoutDetailsScreen({Key? key, required this.workout})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<WorkoutDetailsScreen> createState() => _WorkoutDetailsScreenState();
@@ -91,19 +91,27 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
         isPublic: exercise.isPublic,
         createdBy: exercise.createdBy,
       );
-      
+
       // Mark that changes have been made that need to be saved
       _hasChanges = true;
     });
   }
 
-  Widget _buildNumberControl(int value, Function(int) onChanged,
-      {required int min, required int max}) {
+  Widget _buildNumberControl(
+    int value,
+    Function(int) onChanged, {
+    required int min,
+    required int max,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: const Icon(Icons.remove_circle, size: 20, color: AppColors.primary),
+          icon: const Icon(
+            Icons.remove_circle,
+            size: 20,
+            color: AppColors.primary,
+          ),
           onPressed: value > min ? () => onChanged(value - 1) : null,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
@@ -124,7 +132,11 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.add_circle, size: 20, color: AppColors.primary),
+          icon: const Icon(
+            Icons.add_circle,
+            size: 20,
+            color: AppColors.primary,
+          ),
           onPressed: value < max ? () => onChanged(value + 1) : null,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
@@ -139,9 +151,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     final alternatives = await Exercise.getAlternativeExercises(exercise);
@@ -163,15 +173,18 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         final themeProvider = Provider.of<ThemeProvider>(context);
-        final cardBackgroundColor = themeProvider.isDarkMode
-            ? AppColors.darkCardBackground
-            : AppColors.lightCardBackground;
-        final textPrimaryColor = themeProvider.isDarkMode
-            ? AppColors.darkTextPrimary
-            : AppColors.lightTextPrimary;
-        final textSecondaryColor = themeProvider.isDarkMode
-            ? AppColors.darkTextSecondary
-            : AppColors.lightTextSecondary;
+        final cardBackgroundColor =
+            themeProvider.isDarkMode
+                ? AppColors.darkCardBackground
+                : AppColors.lightCardBackground;
+        final textPrimaryColor =
+            themeProvider.isDarkMode
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary;
+        final textSecondaryColor =
+            themeProvider.isDarkMode
+                ? AppColors.darkTextSecondary
+                : AppColors.lightTextSecondary;
 
         return DraggableScrollableSheet(
           initialChildSize: 0.75,
@@ -287,18 +300,23 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                   width: 70,
                   height: 70,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    width: 70,
-                    height: 70,
-                    color: AppColors.primary.withOpacity(0.1),
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    width: 70,
-                    height: 70,
-                    color: AppColors.primary.withOpacity(0.1),
-                    child: Icon(Icons.fitness_center, color: AppColors.primary),
-                  ),
+                  placeholder:
+                      (context, url) => Container(
+                        width: 70,
+                        height: 70,
+                        color: AppColors.primary.withOpacity(0.1),
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                  errorWidget:
+                      (context, url, error) => Container(
+                        width: 70,
+                        height: 70,
+                        color: AppColors.primary.withOpacity(0.1),
+                        child: Icon(
+                          Icons.fitness_center,
+                          color: AppColors.primary,
+                        ),
+                      ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -317,10 +335,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '${exercise.sets} sets • ${exercise.reps} reps',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: textSecondaryColor,
-                      ),
+                      style: TextStyle(fontSize: 14, color: textSecondaryColor),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -340,8 +355,9 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                             ),
                             backgroundColor: AppColors.primary,
                             padding: EdgeInsets.zero,
-                            labelPadding:
-                                const EdgeInsets.symmetric(horizontal: 8),
+                            labelPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                            ),
                             visualDensity: VisualDensity.compact,
                           ),
                         ),
@@ -359,28 +375,33 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   }
 
   void _startWorkout(BuildContext context) async {
-    final sessionService =
-        Provider.of<WorkoutSessionService>(context, listen: false);
+    final sessionService = Provider.of<WorkoutSessionService>(
+      context,
+      listen: false,
+    );
 
     // Check if there's an active session already
     if (sessionService.hasActiveSession) {
-      final continueWorkout = await showDialog<bool>(
+      final continueWorkout =
+          await showDialog<bool>(
             context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Workout in Progress'),
-              content: const Text(
-                  'You already have a workout in progress. Do you want to continue with this new workout?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('CANCEL'),
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Workout in Progress'),
+                  content: const Text(
+                    'You already have a workout in progress. Do you want to continue with this new workout?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('CANCEL'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('CONTINUE'),
+                    ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('CONTINUE'),
-                ),
-              ],
-            ),
           ) ??
           false;
 
@@ -439,10 +460,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        MessageOverlay.showError(
-          context,
-          message: 'Error: ${e.toString()}',
-        );
+        MessageOverlay.showError(context, message: 'Error: ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -457,22 +475,24 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   Future<void> _confirmDelete() async {
     final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Workout'),
-        content: const Text(
-            'Are you sure you want to delete this workout? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Workout'),
+            content: const Text(
+              'Are you sure you want to delete this workout? This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('CANCEL'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('DELETE'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
     );
 
     if (shouldDelete == true) {
@@ -495,8 +515,9 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
         _isLoading = true;
       });
       try {
-        final updatedWorkout =
-            await Workout.fetchWorkoutById(widget.workout.id);
+        final updatedWorkout = await Workout.fetchWorkoutById(
+          widget.workout.id,
+        );
         if (updatedWorkout != null && mounted) {
           MessageOverlay.showSuccess(
             context,
@@ -547,14 +568,14 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
 
       // Save the updated workout to the database
       final result = await updatedWorkout.updateWorkout();
-      
+
       if (result != null) {
         if (mounted) {
           // Reset the change flag
           setState(() {
             _hasChanges = false;
           });
-          
+
           // Show success message
           MessageOverlay.showSuccess(
             context,
@@ -563,10 +584,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
         }
       } else {
         if (mounted) {
-          MessageOverlay.showError(
-            context,
-            message: 'Failed to save changes',
-          );
+          MessageOverlay.showError(context, message: 'Failed to save changes');
         }
       }
     } catch (e) {
@@ -589,18 +607,22 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    final backgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkBackground
-        : AppColors.lightBackground;
-    final cardBackgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkCardBackground
-        : AppColors.lightCardBackground;
-    final textPrimaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
-    final textSecondaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
+    final backgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkBackground
+            : AppColors.lightBackground;
+    final cardBackgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkCardBackground
+            : AppColors.lightCardBackground;
+    final textPrimaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
+    final textSecondaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary;
 
     final totalExerciseCount = _currentExercises.length;
     final estimatedTotalTime = _estimateTotalTime();
@@ -707,7 +729,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                       tooltip: 'Save Changes',
                       onPressed: _saveChanges,
                     ),
-                  
+
                   // Only show edit/delete buttons if user can edit the workout
                   if (canEditDelete) ...[
                     // Edit button
@@ -763,8 +785,10 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
 
                 // Workout type
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -803,10 +827,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                 const SizedBox(height: 8),
                 Text(
                   widget.workout.description,
-                  style: TextStyle(
-                    color: textSecondaryColor,
-                    height: 1.5,
-                  ),
+                  style: TextStyle(color: textSecondaryColor, height: 1.5),
                 ),
 
                 const SizedBox(height: 32),
@@ -825,9 +846,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                     ),
                     Text(
                       "$totalExerciseCount exercises",
-                      style: TextStyle(
-                        color: textSecondaryColor,
-                      ),
+                      style: TextStyle(color: textSecondaryColor),
                     ),
                   ],
                 ),
@@ -901,10 +920,11 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
       return CachedNetworkImage(
         imageUrl: widget.workout.imageUrl,
         fit: BoxFit.cover,
-        placeholder: (context, url) => Container(
-          color: AppColors.primary.withOpacity(0.3),
-          child: const Center(child: CircularProgressIndicator()),
-        ),
+        placeholder:
+            (context, url) => Container(
+              color: AppColors.primary.withOpacity(0.3),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
         errorWidget: (context, url, error) => _buildPlaceholderBackground(),
       );
     } catch (e) {
@@ -949,19 +969,9 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 16,
-          ),
+          Icon(icon, color: Colors.white, size: 16),
           const SizedBox(width: 6),
-          Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-            ),
-          ),
+          Text(text, style: const TextStyle(color: Colors.white, fontSize: 13)),
         ],
       ),
     );
@@ -995,23 +1005,13 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
               color: color.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
+            child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                ),
-              ),
+              Text(title, style: TextStyle(color: color, fontSize: 12)),
               Text(
                 value,
                 style: const TextStyle(
@@ -1092,14 +1092,16 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                         children: [
                           _buildNumberControl(
                             exercise.sets,
-                            (newSets) => _updateExerciseSetsReps(index, sets: newSets),
+                            (newSets) =>
+                                _updateExerciseSetsReps(index, sets: newSets),
                             min: 1,
                             max: 10,
                           ),
                           const SizedBox(width: 16),
                           _buildNumberControl(
                             exercise.reps,
-                            (newReps) => _updateExerciseSetsReps(index, reps: newReps),
+                            (newReps) =>
+                                _updateExerciseSetsReps(index, reps: newReps),
                             min: 1,
                             max: 50,
                           ),
@@ -1109,25 +1111,26 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
-                        children: exercise.targetMuscles.map((muscle) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              muscle,
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                        children:
+                            exercise.targetMuscles.map((muscle) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  muscle,
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                       ),
                     ],
                   ),
@@ -1164,40 +1167,38 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
               height: 180,
               width: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                height: 180,
-                color: AppColors.primary.withOpacity(0.1),
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (context, url, error) => Container(
-                height: 180,
-                color: AppColors.primary.withOpacity(0.1),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.fitness_center,
-                      color: AppColors.primary,
-                      size: 40,
+              placeholder:
+                  (context, url) => Container(
+                    height: 180,
+                    color: AppColors.primary.withOpacity(0.1),
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+              errorWidget:
+                  (context, url, error) => Container(
+                    height: 180,
+                    color: AppColors.primary.withOpacity(0.1),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.fitness_center,
+                          color: AppColors.primary,
+                          size: 40,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          exercise.name,
+                          style: TextStyle(color: textSecondaryColor),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      exercise.name,
-                      style: TextStyle(
-                        color: textSecondaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
             ),
           ),
 
           // Exercise description (expandable)
           Theme(
-            data: Theme.of(context).copyWith(
-              dividerColor: Colors.transparent,
-            ),
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
               title: Text(
                 'Instructions',
@@ -1212,10 +1213,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
               children: [
                 Text(
                   exercise.description,
-                  style: TextStyle(
-                    color: textSecondaryColor,
-                    height: 1.5,
-                  ),
+                  style: TextStyle(color: textSecondaryColor, height: 1.5),
                 ),
               ],
             ),

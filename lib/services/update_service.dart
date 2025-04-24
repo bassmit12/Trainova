@@ -251,7 +251,8 @@ class UpdateService {
     // Using custom message widget instead of snackbar
     MessageOverlay.showSuccess(
       context,
-      message: 'Starting installation. Please follow the system prompts to install.',
+      message:
+          'Starting installation. Please follow the system prompts to install.',
       duration: const Duration(seconds: 5),
     );
   }

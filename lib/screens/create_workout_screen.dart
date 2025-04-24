@@ -52,14 +52,14 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
     'Cardio',
     'Yoga',
     'HIIT',
-    'Recovery'
+    'Recovery',
   ];
 
   // List of difficulty levels
   final List<String> _difficultyLevels = [
     'Beginner',
     'Intermediate',
-    'Advanced'
+    'Advanced',
   ];
 
   @override
@@ -205,18 +205,20 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   void _addExercise(Exercise exercise) {
     setState(() {
       // Add a copy to avoid modifying the original
-      _exercises.add(Exercise(
-        id: exercise.id,
-        name: exercise.name,
-        description: exercise.description,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        imageUrl: exercise.imageUrl,
-        targetMuscles: exercise.targetMuscles,
-        difficulty: exercise.difficulty,
-        isPublic: exercise.isPublic,
-        createdBy: exercise.createdBy,
-      ));
+      _exercises.add(
+        Exercise(
+          id: exercise.id,
+          name: exercise.name,
+          description: exercise.description,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          imageUrl: exercise.imageUrl,
+          targetMuscles: exercise.targetMuscles,
+          difficulty: exercise.difficulty,
+          isPublic: exercise.isPublic,
+          createdBy: exercise.createdBy,
+        ),
+      );
     });
   }
 
@@ -284,13 +286,21 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   }
 
   // Helper function to build a +/- control for numbers
-  Widget _buildNumberControl(int value, Function(int) onChanged,
-      {required int min, required int max}) {
+  Widget _buildNumberControl(
+    int value,
+    Function(int) onChanged, {
+    required int min,
+    required int max,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: const Icon(Icons.remove_circle, size: 20, color: AppColors.primary),
+          icon: const Icon(
+            Icons.remove_circle,
+            size: 20,
+            color: AppColors.primary,
+          ),
           onPressed: value > min ? () => onChanged(value - 1) : null,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
@@ -311,7 +321,11 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.add_circle, size: 20, color: AppColors.primary),
+          icon: const Icon(
+            Icons.add_circle,
+            size: 20,
+            color: AppColors.primary,
+          ),
           onPressed: value < max ? () => onChanged(value + 1) : null,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
@@ -325,18 +339,22 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    final backgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkBackground
-        : AppColors.lightBackground;
-    final cardBackgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkCardBackground
-        : AppColors.lightCardBackground;
-    final textPrimaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
-    final textSecondaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
+    final backgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkBackground
+            : AppColors.lightBackground;
+    final cardBackgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkCardBackground
+            : AppColors.lightCardBackground;
+    final textPrimaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
+    final textSecondaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary;
     final inputFillColor =
         themeProvider.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade50;
 
@@ -364,386 +382,410 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
             TextButton(
               onPressed: _saveWorkout,
               child: const Text('SAVE'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
               ? Center(
-                  child: Text(_errorMessage!,
-                      style: TextStyle(color: textPrimaryColor)))
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(color: textPrimaryColor),
+                ),
+              )
               : Form(
-                  key: _formKey,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      // Workout image picker
-                      WorkoutImagePicker(
-                        imageUrl: _imageUrl,
-                        isUploading: _isUploadingImage,
-                        onImageSelected: _handleImageSelected,
-                      ),
-                      const SizedBox(height: 16),
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // Workout image picker
+                    WorkoutImagePicker(
+                      imageUrl: _imageUrl,
+                      isUploading: _isUploadingImage,
+                      onImageSelected: _handleImageSelected,
+                    ),
+                    const SizedBox(height: 16),
 
-                      // Workout name
-                      TextFormField(
-                        controller: _nameController,
-                        style: TextStyle(color: textPrimaryColor),
-                        decoration: InputDecoration(
-                          labelText: 'Workout Name',
-                          border: const OutlineInputBorder(),
-                          labelStyle: TextStyle(color: textSecondaryColor),
-                          fillColor: inputFillColor,
-                          filled: themeProvider.isDarkMode,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a name';
-                          }
-                          return null;
-                        },
+                    // Workout name
+                    TextFormField(
+                      controller: _nameController,
+                      style: TextStyle(color: textPrimaryColor),
+                      decoration: InputDecoration(
+                        labelText: 'Workout Name',
+                        border: const OutlineInputBorder(),
+                        labelStyle: TextStyle(color: textSecondaryColor),
+                        fillColor: inputFillColor,
+                        filled: themeProvider.isDarkMode,
                       ),
-                      const SizedBox(height: 16),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                      // Workout description
-                      TextFormField(
-                        controller: _descriptionController,
-                        style: TextStyle(color: textPrimaryColor),
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          border: const OutlineInputBorder(),
-                          labelStyle: TextStyle(color: textSecondaryColor),
-                          fillColor: inputFillColor,
-                          filled: themeProvider.isDarkMode,
-                        ),
-                        maxLines: 3,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a description';
-                          }
-                          return null;
-                        },
+                    // Workout description
+                    TextFormField(
+                      controller: _descriptionController,
+                      style: TextStyle(color: textPrimaryColor),
+                      decoration: InputDecoration(
+                        labelText: 'Description',
+                        border: const OutlineInputBorder(),
+                        labelStyle: TextStyle(color: textSecondaryColor),
+                        fillColor: inputFillColor,
+                        filled: themeProvider.isDarkMode,
                       ),
-                      const SizedBox(height: 16),
+                      maxLines: 3,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a description';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                      // Workout type dropdown
-                      DropdownButtonFormField<String>(
-                        value: _selectedType,
-                        style: TextStyle(color: textPrimaryColor),
-                        dropdownColor: cardBackgroundColor,
-                        decoration: InputDecoration(
-                          labelText: 'Workout Type',
-                          border: const OutlineInputBorder(),
-                          labelStyle: TextStyle(color: textSecondaryColor),
-                          fillColor: inputFillColor,
-                          filled: themeProvider.isDarkMode,
+                    // Workout type dropdown
+                    DropdownButtonFormField<String>(
+                      value: _selectedType,
+                      style: TextStyle(color: textPrimaryColor),
+                      dropdownColor: cardBackgroundColor,
+                      decoration: InputDecoration(
+                        labelText: 'Workout Type',
+                        border: const OutlineInputBorder(),
+                        labelStyle: TextStyle(color: textSecondaryColor),
+                        fillColor: inputFillColor,
+                        filled: themeProvider.isDarkMode,
+                      ),
+                      items:
+                          _workoutTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            );
+                          }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedType = value!;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Row for difficulty and duration
+                    Row(
+                      children: [
+                        // Difficulty dropdown
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedDifficulty,
+                            style: TextStyle(color: textPrimaryColor),
+                            dropdownColor: cardBackgroundColor,
+                            decoration: InputDecoration(
+                              labelText: 'Difficulty',
+                              border: const OutlineInputBorder(),
+                              labelStyle: TextStyle(color: textSecondaryColor),
+                              fillColor: inputFillColor,
+                              filled: themeProvider.isDarkMode,
+                            ),
+                            items:
+                                _difficultyLevels.map((level) {
+                                  return DropdownMenuItem(
+                                    value: level,
+                                    child: Text(level),
+                                  );
+                                }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedDifficulty = value!;
+                              });
+                            },
+                          ),
                         ),
-                        items: _workoutTypes.map((type) {
-                          return DropdownMenuItem(
-                            value: type,
-                            child: Text(type),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
+                        const SizedBox(width: 16),
+
+                        // Duration input
+                        Expanded(
+                          child: TextFormField(
+                            controller: _durationController,
+                            style: TextStyle(color: textPrimaryColor),
+                            decoration: InputDecoration(
+                              labelText: 'Duration',
+                              border: const OutlineInputBorder(),
+                              hintText: 'e.g. 30 min',
+                              hintStyle: TextStyle(color: textSecondaryColor),
+                              labelStyle: TextStyle(color: textSecondaryColor),
+                              fillColor: inputFillColor,
+                              filled: themeProvider.isDarkMode,
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Required';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Calories input
+                    TextFormField(
+                      controller: _caloriesController,
+                      style: TextStyle(color: textPrimaryColor),
+                      decoration: InputDecoration(
+                        labelText: 'Calories Burned',
+                        border: const OutlineInputBorder(),
+                        hintText: 'e.g. 300',
+                        hintStyle: TextStyle(color: textSecondaryColor),
+                        labelStyle: TextStyle(color: textSecondaryColor),
+                        fillColor: inputFillColor,
+                        filled: themeProvider.isDarkMode,
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Required';
+                        }
+                        if (int.tryParse(value) == null) {
+                          return 'Enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Public visibility toggle (only visible to admins)
+                    if (_isAdminMode)
+                      SwitchListTile(
+                        title: Text(
+                          'Make Public (Visible to All Users)',
+                          style: TextStyle(color: textPrimaryColor),
+                        ),
+                        value: _isPublic,
+                        activeColor: AppColors.primary,
+                        onChanged: (bool value) {
                           setState(() {
-                            _selectedType = value!;
+                            _isPublic = value;
                           });
                         },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Row for difficulty and duration
-                      Row(
-                        children: [
-                          // Difficulty dropdown
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: _selectedDifficulty,
-                              style: TextStyle(color: textPrimaryColor),
-                              dropdownColor: cardBackgroundColor,
-                              decoration: InputDecoration(
-                                labelText: 'Difficulty',
-                                border: const OutlineInputBorder(),
-                                labelStyle:
-                                    TextStyle(color: textSecondaryColor),
-                                fillColor: inputFillColor,
-                                filled: themeProvider.isDarkMode,
-                              ),
-                              items: _difficultyLevels.map((level) {
-                                return DropdownMenuItem(
-                                  value: level,
-                                  child: Text(level),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedDifficulty = value!;
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Duration input
-                          Expanded(
-                            child: TextFormField(
-                              controller: _durationController,
-                              style: TextStyle(color: textPrimaryColor),
-                              decoration: InputDecoration(
-                                labelText: 'Duration',
-                                border: const OutlineInputBorder(),
-                                hintText: 'e.g. 30 min',
-                                hintStyle: TextStyle(color: textSecondaryColor),
-                                labelStyle:
-                                    TextStyle(color: textSecondaryColor),
-                                fillColor: inputFillColor,
-                                filled: themeProvider.isDarkMode,
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Required';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Calories input
-                      TextFormField(
-                        controller: _caloriesController,
-                        style: TextStyle(color: textPrimaryColor),
-                        decoration: InputDecoration(
-                          labelText: 'Calories Burned',
-                          border: const OutlineInputBorder(),
-                          hintText: 'e.g. 300',
-                          hintStyle: TextStyle(color: textSecondaryColor),
-                          labelStyle: TextStyle(color: textSecondaryColor),
-                          fillColor: inputFillColor,
-                          filled: themeProvider.isDarkMode,
+                        secondary: const Icon(
+                          Icons.public,
+                          color: AppColors.primary,
                         ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Required';
-                          }
-                          if (int.tryParse(value) == null) {
-                            return 'Enter a valid number';
-                          }
-                          return null;
+                      ),
+
+                    const SizedBox(height: 24),
+
+                    // Exercise section
+                    Text(
+                      'Exercises',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    if (_exercises.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: Text(
+                            'No exercises added yet',
+                            style: TextStyle(color: textSecondaryColor),
+                          ),
+                        ),
+                      )
+                    else
+                      ReorderableListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        onReorder: _reorderExercises,
+                        itemCount: _exercises.length,
+                        itemBuilder: (context, index) {
+                          final exercise = _exercises[index];
+                          return Card(
+                            key: Key('exercise_${exercise.id}_$index'),
+                            color: cardBackgroundColor,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Exercise icon and drag handle
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withOpacity(
+                                            0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.all(8),
+                                        child: const Icon(
+                                          Icons.fitness_center,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+
+                                      // Exercise name and muscle groups
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              exercise.name,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: textPrimaryColor,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              exercise.targetMuscles.join(', '),
+                                              style: TextStyle(
+                                                color: textSecondaryColor,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      // Delete button
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () => _removeExercise(index),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 16),
+
+                                  // Sets and reps controls
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // Sets control
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'Sets: ',
+                                            style: TextStyle(
+                                              color: textSecondaryColor,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          _buildNumberControl(
+                                            exercise.sets,
+                                            (value) {
+                                              if (value >= 1 && value <= 10) {
+                                                _updateExerciseSetsReps(
+                                                  index,
+                                                  sets: value,
+                                                );
+                                              }
+                                            },
+                                            min: 1,
+                                            max: 10,
+                                          ),
+                                        ],
+                                      ),
+
+                                      // Reps control
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'Reps: ',
+                                            style: TextStyle(
+                                              color: textSecondaryColor,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          _buildNumberControl(
+                                            exercise.reps,
+                                            (value) {
+                                              if (value >= 1 && value <= 50) {
+                                                _updateExerciseSetsReps(
+                                                  index,
+                                                  reps: value,
+                                                );
+                                              }
+                                            },
+                                            min: 1,
+                                            max: 50,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
                         },
                       ),
-                      const SizedBox(height: 16),
 
-                      // Public visibility toggle (only visible to admins)
-                      if (_isAdminMode)
-                        SwitchListTile(
-                          title: Text('Make Public (Visible to All Users)',
-                              style: TextStyle(color: textPrimaryColor)),
-                          value: _isPublic,
-                          activeColor: AppColors.primary,
-                          onChanged: (bool value) {
-                            setState(() {
-                              _isPublic = value;
-                            });
-                          },
-                          secondary: const Icon(Icons.public,
-                              color: AppColors.primary),
-                        ),
+                    const SizedBox(height: 16),
 
-                      const SizedBox(height: 24),
-
-                      // Exercise section
-                      Text(
-                        'Exercises',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: textPrimaryColor,
-                        ),
+                    // Add exercise button
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Exercise'),
+                      onPressed: () => _showExerciseSelector(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      const SizedBox(height: 8),
-
-                      if (_exercises.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Center(
-                            child: Text(
-                              'No exercises added yet',
-                              style: TextStyle(color: textSecondaryColor),
-                            ),
-                          ),
-                        )
-                      else
-                        ReorderableListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          onReorder: _reorderExercises,
-                          itemCount: _exercises.length,
-                          itemBuilder: (context, index) {
-                            final exercise = _exercises[index];
-                            return Card(
-                              key: Key('exercise_${exercise.id}_$index'),
-                              color: cardBackgroundColor,
-                              margin: const EdgeInsets.only(bottom: 12),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        // Exercise icon and drag handle
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: AppColors.primary.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          padding: const EdgeInsets.all(8),
-                                          child: const Icon(
-                                            Icons.fitness_center,
-                                            color: AppColors.primary,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        
-                                        // Exercise name and muscle groups
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                exercise.name,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16,
-                                                  color: textPrimaryColor,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                exercise.targetMuscles.join(', '),
-                                                style: TextStyle(
-                                                  color: textSecondaryColor,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        
-                                        // Delete button
-                                        IconButton(
-                                          icon: const Icon(Icons.delete, color: Colors.red),
-                                          onPressed: () => _removeExercise(index),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                          visualDensity: VisualDensity.compact,
-                                        ),
-                                      ],
-                                    ),
-                                    
-                                    const SizedBox(height: 16),
-                                    
-                                    // Sets and reps controls
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        // Sets control
-                                        Row(
-                                          children: [
-                                            Text(
-                                              'Sets: ',
-                                              style: TextStyle(
-                                                color: textSecondaryColor,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            _buildNumberControl(
-                                              exercise.sets,
-                                              (value) {
-                                                if (value >= 1 && value <= 10) {
-                                                  _updateExerciseSetsReps(index, sets: value);
-                                                }
-                                              },
-                                              min: 1,
-                                              max: 10,
-                                            ),
-                                          ],
-                                        ),
-
-                                        // Reps control
-                                        Row(
-                                          children: [
-                                            Text(
-                                              'Reps: ',
-                                              style: TextStyle(
-                                                color: textSecondaryColor,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            _buildNumberControl(
-                                              exercise.reps,
-                                              (value) {
-                                                if (value >= 1 && value <= 50) {
-                                                  _updateExerciseSetsReps(index, reps: value);
-                                                }
-                                              },
-                                              min: 1,
-                                              max: 50,
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-
-                      const SizedBox(height: 16),
-
-                      // Add exercise button
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Exercise'),
-                        onPressed: () => _showExerciseSelector(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              ),
     );
   }
 
   // Show bottom sheet to select exercises
   void _showExerciseSelector() {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    final cardBackgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkCardBackground
-        : AppColors.lightCardBackground;
-    final textPrimaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
-    final textSecondaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-    final inputFillColor = themeProvider.isDarkMode
-        ? Colors.grey.shade800
-        : Colors.grey.shade50;
+    final cardBackgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkCardBackground
+            : AppColors.lightCardBackground;
+    final textPrimaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
+    final textSecondaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary;
+    final inputFillColor =
+        themeProvider.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade50;
 
     // For exercise search functionality
     TextEditingController searchController = TextEditingController();
@@ -765,12 +807,20 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                 if (query.isEmpty) {
                   filteredExercises = List.from(_availableExercises);
                 } else {
-                  filteredExercises = _availableExercises
-                      .where((exercise) =>
-                          exercise.name.toLowerCase().contains(query.toLowerCase()) ||
-                          exercise.targetMuscles.any((muscle) =>
-                              muscle.toLowerCase().contains(query.toLowerCase())))
-                      .toList();
+                  filteredExercises =
+                      _availableExercises
+                          .where(
+                            (exercise) =>
+                                exercise.name.toLowerCase().contains(
+                                  query.toLowerCase(),
+                                ) ||
+                                exercise.targetMuscles.any(
+                                  (muscle) => muscle.toLowerCase().contains(
+                                    query.toLowerCase(),
+                                  ),
+                                ),
+                          )
+                          .toList();
                 }
               });
             }
@@ -784,8 +834,9 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                 return Container(
                   decoration: BoxDecoration(
                     color: cardBackgroundColor,
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(16)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -820,13 +871,18 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                           decoration: InputDecoration(
                             hintText: 'Search by name or muscle group...',
                             hintStyle: TextStyle(color: textSecondaryColor),
-                            prefixIcon: Icon(Icons.search, color: textSecondaryColor),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: textSecondaryColor,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
                             fillColor: inputFillColor,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 0,
+                            ),
                           ),
                         ),
                       ),
@@ -846,7 +902,10 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                       const Divider(),
                       // Display filtered results count
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         child: Text(
                           '${filteredExercises.length} exercises found',
                           style: TextStyle(
@@ -856,83 +915,106 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                         ),
                       ),
                       Expanded(
-                        child: filteredExercises.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'No exercises found matching your search',
-                                  style: TextStyle(color: textSecondaryColor),
-                                ),
-                              )
-                            : ListView.builder(
-                                controller: scrollController,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                itemCount: filteredExercises.length,
-                                itemBuilder: (context, i) {
-                                  final alt = filteredExercises[i];
-                                  return ListTile(
-                                    leading: Container(
-                                      width: 50,
-                                      height: 50,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        color: AppColors.primary.withOpacity(0.1),
+                        child:
+                            filteredExercises.isEmpty
+                                ? Center(
+                                  child: Text(
+                                    'No exercises found matching your search',
+                                    style: TextStyle(color: textSecondaryColor),
+                                  ),
+                                )
+                                : ListView.builder(
+                                  controller: scrollController,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  itemCount: filteredExercises.length,
+                                  itemBuilder: (context, i) {
+                                    final alt = filteredExercises[i];
+                                    return ListTile(
+                                      leading: Container(
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          color: AppColors.primary.withOpacity(
+                                            0.1,
+                                          ),
+                                        ),
+                                        child:
+                                            alt.imageUrl.isNotEmpty
+                                                ? ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  child: Image.network(
+                                                    alt.imageUrl,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (
+                                                          context,
+                                                          error,
+                                                          stackTrace,
+                                                        ) => const Icon(
+                                                          Icons.fitness_center,
+                                                          color:
+                                                              AppColors.primary,
+                                                        ),
+                                                  ),
+                                                )
+                                                : const Icon(
+                                                  Icons.fitness_center,
+                                                  color: AppColors.primary,
+                                                ),
                                       ),
-                                      child: alt.imageUrl.isNotEmpty
-                                          ? ClipRRect(
-                                              borderRadius: BorderRadius.circular(8),
-                                              child: Image.network(
-                                                alt.imageUrl,
-                                                fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (context, error, stackTrace) =>
-                                                        const Icon(Icons.fitness_center,
-                                                            color: AppColors.primary),
-                                              ),
-                                            )
-                                          : const Icon(Icons.fitness_center,
-                                              color: AppColors.primary),
-                                    ),
-                                    title: Text(
-                                      alt.name,
-                                      style: TextStyle(color: textPrimaryColor),
-                                    ),
-                                    subtitle: Text(
-                                      '${alt.sets} sets • ${alt.reps} reps\n${alt.targetMuscles.join(", ")}',
-                                      style: TextStyle(color: textSecondaryColor),
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit,
-                                              color: AppColors.primary),
-                                          onPressed: () => _editExercise(alt),
-                                          tooltip: 'Edit Exercise',
+                                      title: Text(
+                                        alt.name,
+                                        style: TextStyle(
+                                          color: textPrimaryColor,
                                         ),
-                                        IconButton(
-                                          icon: const Icon(Icons.add_circle,
-                                              color: AppColors.primary),
-                                          onPressed: () {
-                                            _addExercise(alt);
-                                            Navigator.of(context).pop();
-                                          },
-                                          tooltip: 'Add to Workout',
+                                      ),
+                                      subtitle: Text(
+                                        '${alt.sets} sets • ${alt.reps} reps\n${alt.targetMuscles.join(", ")}',
+                                        style: TextStyle(
+                                          color: textSecondaryColor,
                                         ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
+                                      ),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: AppColors.primary,
+                                            ),
+                                            onPressed: () => _editExercise(alt),
+                                            tooltip: 'Edit Exercise',
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.add_circle,
+                                              color: AppColors.primary,
+                                            ),
+                                            onPressed: () {
+                                              _addExercise(alt);
+                                              Navigator.of(context).pop();
+                                            },
+                                            tooltip: 'Add to Workout',
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                       ),
                     ],
                   ),
                 );
               },
             );
-          }
+          },
         );
       },
     );
@@ -941,9 +1023,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   // Create a new exercise
   Future<void> _createNewExercise() async {
     final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => const ExerciseFormScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const ExerciseFormScreen()),
     );
 
     // If exercise was created successfully, refresh the list

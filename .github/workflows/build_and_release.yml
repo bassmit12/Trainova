@@ -41,6 +41,7 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
+          cache: gradle # Enable Java/Gradle dependency caching
 
       #3 Setup Flutter
       - name: Set Up Flutter
@@ -48,17 +49,43 @@ jobs:
         with:
           flutter-version: "3.29.3"
           channel: "stable"
+          cache: true # Enable Flutter tool caching
 
-      #4 Install Dependencies
+      #4 Cache Pub Dependencies
+      - name: Cache Pub Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.PUB_CACHE }}
+            .dart_tool/
+            ~/.pub-cache/
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      #5 Cache Gradle Dependencies
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+            android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      #6 Install Dependencies
       - name: Install Dependencies
         run: flutter pub get
 
-      #5 Create Local Properties
+      #7 Create Local Properties
       - name: Create Local Properties
         run: |
           echo "flutter.sdk=/opt/hostedtoolcache/flutter/stable-3.29.3-x64" > android/local.properties
 
-      #6 Setup keystore from secrets
+      #8 Setup keystore from secrets
       - name: Setup keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
@@ -72,11 +99,11 @@ jobs:
 
           cat android/key.properties
 
-      #7 Build Release APK
+      #9 Build Release APK
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      #8 Upload Release Artifacts
+      #10 Upload Release Artifacts
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -84,7 +111,7 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/app-release.apk
 
-      #9 Extract Version
+      #11 Extract Version
       - name: Extract version from pubspec.yaml
         id: extract_version
         run: |
@@ -92,7 +119,7 @@ jobs:
           echo "VERSION=$version" >> $GITHUB_ENV
           echo "Extracted version: $version"
 
-      #10 Better Tag Existence Check
+      #12 Better Tag Existence Check
       - name: Check if Tag Exists
         id: check_tag
         run: |
@@ -109,7 +136,7 @@ jobs:
             echo "Tag $tag_name does not exist"
           fi
 
-      #11 Modify Version if Tag Exists
+      #13 Modify Version if Tag Exists
       - name: Modify Version if Tag Exists
         if: env.TAG_EXISTS == 'true'
         id: modify_version
@@ -127,7 +154,7 @@ jobs:
             echo "Modified tag v$new_version is available"
           fi
 
-      #12 Create Release
+      #14 Create Release
       - name: Create Release
         if: github.event_name == 'push' || github.event.inputs.create_release == 'true'
         uses: ncipollo/release-action@v1

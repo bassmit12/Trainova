@@ -67,7 +67,27 @@ android {
                 // Signing with the debug keys for now, so `flutter run --release` works.
                 signingConfig = signingConfigs.getByName("debug")
             }
+            // Enable optimization, shrinking and obfuscation
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+    }
+
+    // Enable build cache
+    buildFeatures {
+        buildConfig = true
+    }
+
+    // Speed up packaging
+    packagingOptions {
+        resources {
+            excludes += listOf("META-INF/DEPENDENCIES", "META-INF/LICENSE", "META-INF/LICENSE.txt", "META-INF/license.txt", "META-INF/NOTICE", "META-INF/NOTICE.txt", "META-INF/notice.txt", "META-INF/ASL2.0")
+        }
+    }
+
+    // Increase daemon memory for faster builds
+    dexOptions {
+        javaMaxHeapSize = "4g"
     }
 }
 

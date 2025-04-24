@@ -35,7 +35,9 @@ class Workout {
 
   // Factory to convert from Supabase response
   factory Workout.fromMap(
-      Map<String, dynamic> map, List<Exercise> workoutExercises) {
+    Map<String, dynamic> map,
+    List<Exercise> workoutExercises,
+  ) {
     return Workout(
       id: map['id'],
       name: map['name'],
@@ -100,10 +102,10 @@ class Workout {
           final exerciseData = item['exercise'] as Map<String, dynamic>;
           final customSets = item['custom_sets'];
           final customReps = item['custom_reps'];
-          
+
           // Create the exercise with base data
           Exercise exercise = Exercise.fromMap(exerciseData);
-          
+
           // Override with custom sets and reps if available
           if (customSets != null) {
             exercise = exercise.copyWith(sets: customSets);
@@ -111,7 +113,7 @@ class Workout {
           if (customReps != null) {
             exercise = exercise.copyWith(reps: customReps);
           }
-          
+
           exercises.add(exercise);
         }
 
@@ -149,9 +151,9 @@ class Workout {
         // If exercise doesn't exist yet, create it
         String exerciseId = exercise.id;
         if (exerciseId.isEmpty || exerciseId == 'new') {
-          final newExercise = await Exercise.createExercise(exercise.copyWith(
-            createdBy: userId,
-          ));
+          final newExercise = await Exercise.createExercise(
+            exercise.copyWith(createdBy: userId),
+          );
           if (newExercise == null) throw Exception('Failed to create exercise');
           exerciseId = newExercise.id;
         }
@@ -202,31 +204,34 @@ class Workout {
         // If exercise doesn't exist yet, create it
         String exerciseId = exercise.id;
         if (exerciseId.isEmpty || exerciseId == 'new') {
-          final newExercise = await Exercise.createExercise(exercise.copyWith(
-            createdBy: userId,
-          ));
+          final newExercise = await Exercise.createExercise(
+            exercise.copyWith(createdBy: userId),
+          );
           if (newExercise == null) throw Exception('Failed to create exercise');
           exerciseId = newExercise.id;
         } else {
           // Check if the exercise needs to be updated (sets/reps)
           // We need to do this without modifying the original exercise in the database
           // So we'll use the workout_exercises junction table to store the custom sets/reps
-          
+
           // First check if the exercise has custom sets or reps for this workout
-          final exerciseInfo = await supabase
-              .from('workout_exercises')
-              .select('custom_sets, custom_reps')
-              .eq('workout_id', id)
-              .eq('exercise_id', exerciseId)
-              .maybeSingle();
-              
+          final exerciseInfo =
+              await supabase
+                  .from('workout_exercises')
+                  .select('custom_sets, custom_reps')
+                  .eq('workout_id', id)
+                  .eq('exercise_id', exerciseId)
+                  .maybeSingle();
+
           if (exerciseInfo != null) {
             final currentSets = exerciseInfo['custom_sets'];
             final currentReps = exerciseInfo['custom_reps'];
-            
+
             // Only update if changed
             if (exercise.sets != currentSets || exercise.reps != currentReps) {
-              debugPrint('Updating exercise ${exercise.name} sets/reps: ${exercise.sets}/${exercise.reps}');
+              debugPrint(
+                'Updating exercise ${exercise.name} sets/reps: ${exercise.sets}/${exercise.reps}',
+              );
             }
           }
         }
@@ -295,10 +300,10 @@ class Workout {
         final exerciseData = item['exercise'] as Map<String, dynamic>;
         final customSets = item['custom_sets'];
         final customReps = item['custom_reps'];
-        
+
         // Create the exercise with base data
         Exercise exercise = Exercise.fromMap(exerciseData);
-        
+
         // Override with custom sets and reps if available
         if (customSets != null) {
           exercise = exercise.copyWith(sets: customSets);
@@ -306,7 +311,7 @@ class Workout {
         if (customReps != null) {
           exercise = exercise.copyWith(reps: customReps);
         }
-        
+
         exercises.add(exercise);
       }
 
@@ -318,19 +323,22 @@ class Workout {
   }
 
   // Calculate workout statistics based on workout history
-  static Future<Map<String, dynamic>> calculateWorkoutStatistics(
-      {int daysBack = 30}) async {
+  static Future<Map<String, dynamic>> calculateWorkoutStatistics({
+    int daysBack = 30,
+  }) async {
     try {
       // Fetch workout history
       final List<WorkoutHistory> history =
           await WorkoutHistory.fetchUserWorkoutHistory();
 
       // Filter for workouts within the specified time range
-      final DateTime cutoffDate =
-          DateTime.now().subtract(Duration(days: daysBack));
-      final List<WorkoutHistory> recentWorkouts = history
-          .where((workout) => workout.completedAt.isAfter(cutoffDate))
-          .toList();
+      final DateTime cutoffDate = DateTime.now().subtract(
+        Duration(days: daysBack),
+      );
+      final List<WorkoutHistory> recentWorkouts =
+          history
+              .where((workout) => workout.completedAt.isAfter(cutoffDate))
+              .toList();
 
       // Calculate stats
       final int workoutCount = recentWorkouts.length;
@@ -349,7 +357,7 @@ class Workout {
         'workoutCount': workoutCount,
         'caloriesBurned': totalCaloriesBurned,
         'hoursSpent': hoursSpent,
-        'timeRange': daysBack
+        'timeRange': daysBack,
       };
     } catch (e) {
       debugPrint('Error calculating workout statistics: $e');
@@ -357,7 +365,7 @@ class Workout {
         'workoutCount': 0,
         'caloriesBurned': 0,
         'hoursSpent': 0.0,
-        'timeRange': daysBack
+        'timeRange': daysBack,
       };
     }
   }
