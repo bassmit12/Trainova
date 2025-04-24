@@ -62,9 +62,7 @@ class AuthService extends ChangeNotifier {
         await _client.auth.signInWithOAuth(
           OAuthProvider.google,
           redirectTo: SupabaseConfig.redirectUrl,
-          queryParams: {
-            'client_id': SupabaseConfig.googleClientIdWeb,
-          },
+          queryParams: {'client_id': SupabaseConfig.googleClientIdWeb},
         );
         return _currentUser;
       } else {
@@ -79,9 +77,11 @@ class AuthService extends ChangeNotifier {
             serverClientId: SupabaseConfig.googleClientIdWeb,
           );
           print(
-              'DEBUG: Using Android debug client ID: ${SupabaseConfig.googleClientIdAndroidDebug}');
+            'DEBUG: Using Android debug client ID: ${SupabaseConfig.googleClientIdAndroidDebug}',
+          );
           print(
-              'DEBUG: Mobile redirect URL: ${SupabaseConfig.mobileRedirectUrl}');
+            'DEBUG: Mobile redirect URL: ${SupabaseConfig.mobileRedirectUrl}',
+          );
         } else {
           // Release build - use the release client ID
           // For GitHub Actions builds, consider using a different client ID if needed
@@ -91,9 +91,11 @@ class AuthService extends ChangeNotifier {
             serverClientId: SupabaseConfig.googleClientIdWeb,
           );
           print(
-              'RELEASE: Using Android release client ID: ${SupabaseConfig.googleClientIdAndroidRelease}');
+            'RELEASE: Using Android release client ID: ${SupabaseConfig.googleClientIdAndroidRelease}',
+          );
           print(
-              'RELEASE: Mobile redirect URL: ${SupabaseConfig.mobileRedirectUrl}');
+            'RELEASE: Mobile redirect URL: ${SupabaseConfig.mobileRedirectUrl}',
+          );
         }
 
         // Sign out first to make sure we get a fresh sign-in
@@ -117,7 +119,9 @@ class AuthService extends ChangeNotifier {
         final accessToken = googleAuth.accessToken;
 
         print('Google SignIn: ID token: ${idToken?.substring(0, 10)}...');
-        print('Google SignIn: Access token: ${accessToken?.substring(0, 10)}...');
+        print(
+          'Google SignIn: Access token: ${accessToken?.substring(0, 10)}...',
+        );
 
         if (idToken == null) {
           print('Google SignIn: Failed to get ID token from Google');
@@ -142,7 +146,8 @@ class AuthService extends ChangeNotifier {
           await getCurrentUserProfile();
         } else {
           print(
-              'Supabase: Failed to sign in with Google token - no user returned');
+            'Supabase: Failed to sign in with Google token - no user returned',
+          );
         }
 
         return _currentUser;
@@ -186,11 +191,12 @@ class AuthService extends ChangeNotifier {
         });
 
         // Fetch again after creating
-        final newResponse = await _client
-            .from('profiles')
-            .select()
-            .eq('id', userId)
-            .maybeSingle();
+        final newResponse =
+            await _client
+                .from('profiles')
+                .select()
+                .eq('id', userId)
+                .maybeSingle();
 
         if (newResponse != null) {
           // Create a new map for merging
@@ -225,7 +231,8 @@ class AuthService extends ChangeNotifier {
       // Debug log current user data
       if (forceRefresh) {
         print(
-            'User data refreshed from Supabase - weight: ${_currentUser?.weight}, height: ${_currentUser?.height}');
+          'User data refreshed from Supabase - weight: ${_currentUser?.weight}, height: ${_currentUser?.height}',
+        );
       }
 
       notifyListeners();
@@ -246,10 +253,7 @@ class AuthService extends ChangeNotifier {
       profileData['updated_at'] = DateTime.now().toIso8601String();
 
       // Update profile in Supabase
-      await _client.from('profiles').upsert({
-        'id': userId,
-        ...profileData,
-      });
+      await _client.from('profiles').upsert({'id': userId, ...profileData});
 
       // Refresh user data
       await getCurrentUserProfile();

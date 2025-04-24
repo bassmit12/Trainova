@@ -46,13 +46,15 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthService(supabase)),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(
-            create: (_) => WorkoutSessionService()..initialize()),
+          create: (_) => WorkoutSessionService()..initialize(),
+        ),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(
-          create: (_) => UpdateProvider(
-            githubOwner: AppConfig.githubOwner,
-            githubRepo: AppConfig.githubRepo,
-          ),
+          create:
+              (_) => UpdateProvider(
+                githubOwner: AppConfig.githubOwner,
+                githubRepo: AppConfig.githubRepo,
+              ),
         ),
       ],
       child: Consumer<ThemeProvider>(
@@ -129,21 +131,8 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final updateProvider = Provider.of<UpdateProvider>(context);
-    
     return Scaffold(
-      body: Stack(
-        children: [
-          _screens[_currentIndex],
-          if (updateProvider.updateAvailable)
-            Positioned(
-              bottom: 70, // Position above the bottom nav bar
-              left: 0,
-              right: 0,
-              child: const UpdateNotificationWidget(),
-            ),
-        ],
-      ),
+      body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: (index) {

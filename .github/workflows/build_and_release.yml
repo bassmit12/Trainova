@@ -33,7 +33,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all history to properly check tags
+          fetch-depth: 0 # Fetch all history to properly check tags
 
       #2 Setup Java
       - name: Set Up Java
@@ -66,10 +66,10 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-          
+
           # Display the SHA-1 fingerprint for Google OAuth verification
           keytool -list -v -keystore android/app/keystore.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.STORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA1:"
-          
+
           cat android/key.properties
 
       #7 Build Release APK
@@ -98,7 +98,7 @@ jobs:
         run: |
           # Fetch all tags
           git fetch --tags
-          
+
           # Check if tag exists using a more reliable method
           tag_name="v${{ env.VERSION }}"
           if git tag -l "$tag_name" | grep -q "$tag_name"; then
@@ -118,7 +118,7 @@ jobs:
           new_version="${original_version}-build-${{ github.run_number }}"
           echo "Modified version from $original_version to $new_version"
           echo "VERSION=$new_version" >> $GITHUB_ENV
-          
+
           # Double-check that the new tag doesn't exist
           if git tag -l "v$new_version" | grep -q "v$new_version"; then
             echo "Error: Modified tag v$new_version also exists!"
@@ -126,7 +126,7 @@ jobs:
           else
             echo "Modified tag v$new_version is available"
           fi
-        
+
       #12 Create Release
       - name: Create Release
         if: github.event_name == 'push' || github.event.inputs.create_release == 'true'
@@ -137,7 +137,7 @@ jobs:
           name: "Trainova v${{ env.VERSION }}"
           body: |
             Release of Trainova version ${{ env.VERSION }}
-            
+
             ### What's New
             - Auto-update functionality
             - Bug fixes and performance improvements

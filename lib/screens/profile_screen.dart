@@ -29,7 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     'workoutCount': 0,
     'caloriesBurned': 0,
     'hoursSpent': 0.0,
-    'timeRange': 30
+    'timeRange': 30,
   }; // Add workout stats
 
   @override
@@ -96,18 +96,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final user = authService.currentUser;
 
-    final backgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkBackground
-        : AppColors.lightBackground;
-    final textPrimaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
-    final textSecondaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-    final cardBackgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkCardBackground
-        : AppColors.lightCardBackground;
+    final backgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkBackground
+            : AppColors.lightBackground;
+    final textPrimaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
+    final textSecondaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary;
+    final cardBackgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkCardBackground
+            : AppColors.lightCardBackground;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -121,9 +125,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icon(Icons.settings, color: textPrimaryColor),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const SettingsScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
           ),
@@ -136,13 +138,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const SizedBox(height: 24),
               _buildProfileHeader(
-                  context, user, textPrimaryColor, textSecondaryColor),
+                context,
+                user,
+                textPrimaryColor,
+                textSecondaryColor,
+              ),
               const SizedBox(height: 32),
-              _buildStatsSection(context, cardBackgroundColor, textPrimaryColor,
-                  textSecondaryColor),
+              _buildStatsSection(
+                context,
+                cardBackgroundColor,
+                textPrimaryColor,
+                textSecondaryColor,
+              ),
               const SizedBox(height: 24),
-              _buildActionItems(context, authService, cardBackgroundColor,
-                  textPrimaryColor, textSecondaryColor),
+              _buildActionItems(
+                context,
+                authService,
+                cardBackgroundColor,
+                textPrimaryColor,
+                textSecondaryColor,
+              ),
               const SizedBox(height: 24),
               _buildAdminToggle(context, textPrimaryColor, textSecondaryColor),
             ],
@@ -152,8 +167,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, UserModel? user,
-      Color textPrimaryColor, Color textSecondaryColor) {
+  Widget _buildProfileHeader(
+    BuildContext context,
+    UserModel? user,
+    Color textPrimaryColor,
+    Color textSecondaryColor,
+  ) {
     return Column(
       children: [
         // Profile picture
@@ -166,23 +185,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: AppColors.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: user?.avatarUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: user!.avatarUrl!,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) =>
-                        const CircularProgressIndicator(),
-                    errorWidget: (context, url, error) => const Icon(
+            child:
+                user?.avatarUrl != null
+                    ? CachedNetworkImage(
+                      imageUrl: user!.avatarUrl!,
+                      fit: BoxFit.cover,
+                      placeholder:
+                          (context, url) => const CircularProgressIndicator(),
+                      errorWidget:
+                          (context, url, error) => const Icon(
+                            Icons.person,
+                            size: 50,
+                            color: AppColors.primary,
+                          ),
+                    )
+                    : const Icon(
                       Icons.person,
                       size: 50,
                       color: AppColors.primary,
                     ),
-                  )
-                : const Icon(
-                    Icons.person,
-                    size: 50,
-                    color: AppColors.primary,
-                  ),
           ),
         ),
         const SizedBox(height: 16),
@@ -199,10 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // User email
         Text(
           user?.email ?? 'No email provided',
-          style: TextStyle(
-            fontSize: 16,
-            color: textSecondaryColor,
-          ),
+          style: TextStyle(fontSize: 16, color: textSecondaryColor),
         ),
         const SizedBox(height: 16),
         // Edit profile button
@@ -235,24 +253,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatsSection(BuildContext context, Color cardBackgroundColor,
-      Color textPrimaryColor, Color textSecondaryColor) {
+  Widget _buildStatsSection(
+    BuildContext context,
+    Color cardBackgroundColor,
+    Color textPrimaryColor,
+    Color textSecondaryColor,
+  ) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final shadowColor = themeProvider.isDarkMode
-        ? Colors.black.withOpacity(0.2)
-        : Colors.black.withOpacity(0.05);
+    final shadowColor =
+        themeProvider.isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.black.withOpacity(0.05);
 
     // Format the workout stats values
     String workoutsValue =
         _isLoadingStats ? '...' : '${_workoutStats['workoutCount']}';
 
-    String caloriesValue = _isLoadingStats
-        ? '...'
-        : NumberFormat('#,###').format(_workoutStats['caloriesBurned']);
+    String caloriesValue =
+        _isLoadingStats
+            ? '...'
+            : NumberFormat('#,###').format(_workoutStats['caloriesBurned']);
 
-    String hoursValue = _isLoadingStats
-        ? '...'
-        : _workoutStats['hoursSpent'].toStringAsFixed(1);
+    String hoursValue =
+        _isLoadingStats
+            ? '...'
+            : _workoutStats['hoursSpent'].toStringAsFixed(1);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -286,14 +311,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildStatItem(context, workoutsValue, 'Workouts',
-                    textPrimaryColor, textSecondaryColor),
+                _buildStatItem(
+                  context,
+                  workoutsValue,
+                  'Workouts',
+                  textPrimaryColor,
+                  textSecondaryColor,
+                ),
                 _buildVerticalDivider(themeProvider.isDarkMode),
-                _buildStatItem(context, caloriesValue, 'Calories',
-                    textPrimaryColor, textSecondaryColor),
+                _buildStatItem(
+                  context,
+                  caloriesValue,
+                  'Calories',
+                  textPrimaryColor,
+                  textSecondaryColor,
+                ),
                 _buildVerticalDivider(themeProvider.isDarkMode),
-                _buildStatItem(context, hoursValue, 'Hours', textPrimaryColor,
-                    textSecondaryColor),
+                _buildStatItem(
+                  context,
+                  hoursValue,
+                  'Hours',
+                  textPrimaryColor,
+                  textSecondaryColor,
+                ),
               ],
             ),
           ],
@@ -302,8 +342,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String value, String label,
-      Color textPrimaryColor, Color textSecondaryColor) {
+  Widget _buildStatItem(
+    BuildContext context,
+    String value,
+    String label,
+    Color textPrimaryColor,
+    Color textSecondaryColor,
+  ) {
     return Column(
       children: [
         Text(
@@ -315,22 +360,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: textSecondaryColor,
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 14, color: textSecondaryColor)),
       ],
     );
   }
 
   Widget _buildVerticalDivider(bool isDarkMode) {
     return Container(
-        height: 40,
-        width: 1,
-        color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300);
+      height: 40,
+      width: 1,
+      color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
+    );
   }
 
   Widget _buildActionItems(
@@ -350,9 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Icons.flag,
             () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const GoalsScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const GoalsScreen()),
               );
             },
             cardBackgroundColor: cardBackgroundColor,
@@ -411,8 +449,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               await authService.signOut();
               // Navigate explicitly to the root route for cleaner transition
               if (context.mounted) {
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil('/', (route) => false);
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/', (route) => false);
               }
             },
             color: Colors.red,
@@ -473,7 +512,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAdminToggle(
-      BuildContext context, Color textPrimaryColor, Color textSecondaryColor) {
+    BuildContext context,
+    Color textPrimaryColor,
+    Color textSecondaryColor,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
