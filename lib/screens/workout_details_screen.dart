@@ -29,6 +29,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   bool _showTitle = false;
   bool _isLoading = false;
   bool _isAdmin = false; // Track admin status
+  bool _hasChanges = false; // Track if user made changes
 
   @override
   void initState() {
@@ -71,7 +72,66 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   void _replaceExercise(int index, Exercise newExercise) {
     setState(() {
       _currentExercises[index] = newExercise;
+      _hasChanges = true;
     });
+  }
+
+  void _updateExerciseSetsReps(int index, {int? sets, int? reps}) {
+    setState(() {
+      final exercise = _currentExercises[index];
+      _currentExercises[index] = Exercise(
+        id: exercise.id,
+        name: exercise.name,
+        description: exercise.description,
+        sets: sets ?? exercise.sets,
+        reps: reps ?? exercise.reps,
+        imageUrl: exercise.imageUrl,
+        targetMuscles: exercise.targetMuscles,
+        difficulty: exercise.difficulty,
+        isPublic: exercise.isPublic,
+        createdBy: exercise.createdBy,
+      );
+      
+      // Mark that changes have been made that need to be saved
+      _hasChanges = true;
+    });
+  }
+
+  Widget _buildNumberControl(int value, Function(int) onChanged,
+      {required int min, required int max}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.remove_circle, size: 20, color: AppColors.primary),
+          onPressed: value > min ? () => onChanged(value - 1) : null,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          visualDensity: VisualDensity.compact,
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            '$value',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.add_circle, size: 20, color: AppColors.primary),
+          onPressed: value < max ? () => onChanged(value + 1) : null,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          visualDensity: VisualDensity.compact,
+        ),
+      ],
+    );
   }
 
   void _showSwapExerciseDialog(int index, Exercise exercise) async {
@@ -462,6 +522,69 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
     }
   }
 
+  // Save changes to exercises (sets and reps)
+  Future<void> _saveChanges() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Create a new workout object with the updated exercises
+      final updatedWorkout = Workout(
+        id: widget.workout.id,
+        name: widget.workout.name,
+        description: widget.workout.description,
+        type: widget.workout.type,
+        imageUrl: widget.workout.imageUrl,
+        duration: widget.workout.duration,
+        difficulty: widget.workout.difficulty,
+        caloriesBurned: widget.workout.caloriesBurned,
+        exercises: _currentExercises, // Use the modified exercises
+        isPublic: widget.workout.isPublic,
+        createdBy: widget.workout.createdBy,
+        createdAt: widget.workout.createdAt,
+      );
+
+      // Save the updated workout to the database
+      final result = await updatedWorkout.updateWorkout();
+      
+      if (result != null) {
+        if (mounted) {
+          // Reset the change flag
+          setState(() {
+            _hasChanges = false;
+          });
+          
+          // Show success message
+          MessageOverlay.showSuccess(
+            context,
+            message: 'Workout exercises updated successfully',
+          );
+        }
+      } else {
+        if (mounted) {
+          MessageOverlay.showError(
+            context,
+            message: 'Failed to save changes',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        MessageOverlay.showError(
+          context,
+          message: 'Error saving changes: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -563,20 +686,43 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                   ],
                 ),
               ),
-              actions: canEditDelete
-                  ? [
-                      // Edit button
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _editWorkout(context),
+              actions: [
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
-                      // Delete button
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: _confirmDelete,
-                      ),
-                    ]
-                  : null,
+                    ),
+                  )
+                else ...[
+                  // Save button (only shown when changes have been made)
+                  if (_hasChanges)
+                    IconButton(
+                      icon: const Icon(Icons.save),
+                      tooltip: 'Save Changes',
+                      onPressed: _saveChanges,
+                    ),
+                  
+                  // Only show edit/delete buttons if user can edit the workout
+                  if (canEditDelete) ...[
+                    // Edit button
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _editWorkout(context),
+                    ),
+                    // Delete button
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: _confirmDelete,
+                    ),
+                  ],
+                ],
+              ],
             ),
           ];
         },
@@ -942,11 +1088,22 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        '${exercise.sets} ${exercise.sets == 1 ? 'set' : 'sets'} • ${exercise.reps} ${exercise.reps == 1 ? 'rep' : 'reps'}',
-                        style: TextStyle(
-                          color: textSecondaryColor,
-                        ),
+                      Row(
+                        children: [
+                          _buildNumberControl(
+                            exercise.sets,
+                            (newSets) => _updateExerciseSetsReps(index, sets: newSets),
+                            min: 1,
+                            max: 10,
+                          ),
+                          const SizedBox(width: 16),
+                          _buildNumberControl(
+                            exercise.reps,
+                            (newReps) => _updateExerciseSetsReps(index, reps: newReps),
+                            min: 1,
+                            max: 50,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Wrap(

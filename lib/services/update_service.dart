@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'github_api_service.dart';
+import '../widgets/message_overlay.dart';
 
 class UpdateService {
   final GitHubApiService githubApiService;
@@ -151,13 +152,11 @@ class UpdateService {
   ) async {
     print('Trying alternative installation methods...');
     try {
-      // Show a dialog explaining that we're trying an alternative approach
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Trying alternative installation method...'),
-          duration: const Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
+      // Show a message explaining that we're trying an alternative approach
+      MessageOverlay.showWarning(
+        context,
+        message: 'Trying alternative installation method...',
+        duration: const Duration(seconds: 2),
       );
 
       // Offer a dialog with direct manual installation instructions
@@ -249,16 +248,11 @@ class UpdateService {
 
   // Show a dialog informing the user that installation is starting
   void _showInstallationStartingDialog(BuildContext context) {
-    // Using a simple snackbar instead of a dialog to be less intrusive
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Starting installation. Please follow the system prompts to install.',
-        ),
-        duration: const Duration(seconds: 5),
-        backgroundColor: Colors.green.shade700,
-        behavior: SnackBarBehavior.floating,
-      ),
+    // Using custom message widget instead of snackbar
+    MessageOverlay.showSuccess(
+      context,
+      message: 'Starting installation. Please follow the system prompts to install.',
+      duration: const Duration(seconds: 5),
     );
   }
 

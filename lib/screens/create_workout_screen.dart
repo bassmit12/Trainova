@@ -205,7 +205,37 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   void _addExercise(Exercise exercise) {
     setState(() {
       // Add a copy to avoid modifying the original
-      _exercises.add(exercise);
+      _exercises.add(Exercise(
+        id: exercise.id,
+        name: exercise.name,
+        description: exercise.description,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        imageUrl: exercise.imageUrl,
+        targetMuscles: exercise.targetMuscles,
+        difficulty: exercise.difficulty,
+        isPublic: exercise.isPublic,
+        createdBy: exercise.createdBy,
+      ));
+    });
+  }
+
+  // Update exercise sets or reps
+  void _updateExerciseSetsReps(int index, {int? sets, int? reps}) {
+    setState(() {
+      final exercise = _exercises[index];
+      _exercises[index] = Exercise(
+        id: exercise.id,
+        name: exercise.name,
+        description: exercise.description,
+        sets: sets ?? exercise.sets,
+        reps: reps ?? exercise.reps,
+        imageUrl: exercise.imageUrl,
+        targetMuscles: exercise.targetMuscles,
+        difficulty: exercise.difficulty,
+        isPublic: exercise.isPublic,
+        createdBy: exercise.createdBy,
+      );
     });
   }
 
@@ -251,6 +281,44 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
         );
       }
     }
+  }
+
+  // Helper function to build a +/- control for numbers
+  Widget _buildNumberControl(int value, Function(int) onChanged,
+      {required int min, required int max}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.remove_circle, size: 20, color: AppColors.primary),
+          onPressed: value > min ? () => onChanged(value - 1) : null,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          visualDensity: VisualDensity.compact,
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            '$value',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.add_circle, size: 20, color: AppColors.primary),
+          onPressed: value < max ? () => onChanged(value + 1) : null,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          visualDensity: VisualDensity.compact,
+        ),
+      ],
+    );
   }
 
   @override
@@ -523,22 +591,119 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                             return Card(
                               key: Key('exercise_${exercise.id}_$index'),
                               color: cardBackgroundColor,
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: const Icon(Icons.fitness_center,
-                                    color: AppColors.primary),
-                                title: Text(
-                                  exercise.name,
-                                  style: TextStyle(color: textPrimaryColor),
-                                ),
-                                subtitle: Text(
-                                  '${exercise.sets} sets • ${exercise.reps} reps',
-                                  style: TextStyle(color: textSecondaryColor),
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  onPressed: () => _removeExercise(index),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // Exercise icon and drag handle
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          padding: const EdgeInsets.all(8),
+                                          child: const Icon(
+                                            Icons.fitness_center,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        
+                                        // Exercise name and muscle groups
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                exercise.name,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                  color: textPrimaryColor,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                exercise.targetMuscles.join(', '),
+                                                style: TextStyle(
+                                                  color: textSecondaryColor,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        
+                                        // Delete button
+                                        IconButton(
+                                          icon: const Icon(Icons.delete, color: Colors.red),
+                                          onPressed: () => _removeExercise(index),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    const SizedBox(height: 16),
+                                    
+                                    // Sets and reps controls
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        // Sets control
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Sets: ',
+                                              style: TextStyle(
+                                                color: textSecondaryColor,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            _buildNumberControl(
+                                              exercise.sets,
+                                              (value) {
+                                                if (value >= 1 && value <= 10) {
+                                                  _updateExerciseSetsReps(index, sets: value);
+                                                }
+                                              },
+                                              min: 1,
+                                              max: 10,
+                                            ),
+                                          ],
+                                        ),
+
+                                        // Reps control
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Reps: ',
+                                              style: TextStyle(
+                                                color: textSecondaryColor,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            _buildNumberControl(
+                                              exercise.reps,
+                                              (value) {
+                                                if (value >= 1 && value <= 50) {
+                                                  _updateExerciseSetsReps(index, reps: value);
+                                                }
+                                              },
+                                              min: 1,
+                                              max: 50,
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
                             );
@@ -576,6 +741,13 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
     final textSecondaryColor = themeProvider.isDarkMode
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
+    final inputFillColor = themeProvider.isDarkMode
+        ? Colors.grey.shade800
+        : Colors.grey.shade50;
+
+    // For exercise search functionality
+    TextEditingController searchController = TextEditingController();
+    List<Exercise> filteredExercises = List.from(_availableExercises);
 
     showModalBottomSheet(
       context: context,
@@ -585,119 +757,182 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.9,
-          maxChildSize: 0.9,
-          minChildSize: 0.5,
-          expand: false,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: BoxDecoration(
-                color: cardBackgroundColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Select Exercise',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimaryColor,
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.close, color: textPrimaryColor),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            // Function to filter exercises based on search query
+            void filterExercises(String query) {
+              setState(() {
+                if (query.isEmpty) {
+                  filteredExercises = List.from(_availableExercises);
+                } else {
+                  filteredExercises = _availableExercises
+                      .where((exercise) =>
+                          exercise.name.toLowerCase().contains(query.toLowerCase()) ||
+                          exercise.targetMuscles.any((muscle) =>
+                              muscle.toLowerCase().contains(query.toLowerCase())))
+                      .toList();
+                }
+              });
+            }
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.9,
+              maxChildSize: 0.9,
+              minChildSize: 0.5,
+              expand: false,
+              builder: (context, scrollController) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: cardBackgroundColor,
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: ElevatedButton.icon(
-                      onPressed: () => _createNewExercise(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Create New Exercise'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(48),
-                      ),
-                    ),
-                  ),
-                  const Divider(),
-                  Expanded(
-                    child: ListView.builder(
-                      controller: scrollController,
-                      itemCount: _availableExercises.length,
-                      itemBuilder: (context, index) {
-                        final exercise = _availableExercises[index];
-                        return ListTile(
-                          leading: Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: AppColors.primary.withOpacity(0.1),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Select Exercise',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimaryColor,
+                              ),
                             ),
-                            child: exercise.imageUrl.isNotEmpty
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      exercise.imageUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              const Icon(Icons.fitness_center,
-                                                  color: AppColors.primary),
+                            IconButton(
+                              icon: Icon(Icons.close, color: textPrimaryColor),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Search bar for exercises
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: TextField(
+                          controller: searchController,
+                          onChanged: filterExercises,
+                          style: TextStyle(color: textPrimaryColor),
+                          decoration: InputDecoration(
+                            hintText: 'Search by name or muscle group...',
+                            hintStyle: TextStyle(color: textSecondaryColor),
+                            prefixIcon: Icon(Icons.search, color: textSecondaryColor),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: inputFillColor,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: ElevatedButton.icon(
+                          onPressed: () => _createNewExercise(),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Create New Exercise'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(48),
+                          ),
+                        ),
+                      ),
+                      const Divider(),
+                      // Display filtered results count
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Text(
+                          '${filteredExercises.length} exercises found',
+                          style: TextStyle(
+                            color: textSecondaryColor,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: filteredExercises.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No exercises found matching your search',
+                                  style: TextStyle(color: textSecondaryColor),
+                                ),
+                              )
+                            : ListView.builder(
+                                controller: scrollController,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                itemCount: filteredExercises.length,
+                                itemBuilder: (context, i) {
+                                  final alt = filteredExercises[i];
+                                  return ListTile(
+                                    leading: Container(
+                                      width: 50,
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: AppColors.primary.withOpacity(0.1),
+                                      ),
+                                      child: alt.imageUrl.isNotEmpty
+                                          ? ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: Image.network(
+                                                alt.imageUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (context, error, stackTrace) =>
+                                                        const Icon(Icons.fitness_center,
+                                                            color: AppColors.primary),
+                                              ),
+                                            )
+                                          : const Icon(Icons.fitness_center,
+                                              color: AppColors.primary),
                                     ),
-                                  )
-                                : const Icon(Icons.fitness_center,
-                                    color: AppColors.primary),
-                          ),
-                          title: Text(
-                            exercise.name,
-                            style: TextStyle(color: textPrimaryColor),
-                          ),
-                          subtitle: Text(
-                            '${exercise.sets} sets • ${exercise.reps} reps\n${exercise.targetMuscles.join(", ")}',
-                            style: TextStyle(color: textSecondaryColor),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit,
-                                    color: AppColors.primary),
-                                onPressed: () => _editExercise(exercise),
-                                tooltip: 'Edit Exercise',
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.add_circle,
-                                    color: AppColors.primary),
-                                onPressed: () {
-                                  _addExercise(exercise);
-                                  Navigator.of(context).pop();
+                                    title: Text(
+                                      alt.name,
+                                      style: TextStyle(color: textPrimaryColor),
+                                    ),
+                                    subtitle: Text(
+                                      '${alt.sets} sets • ${alt.reps} reps\n${alt.targetMuscles.join(", ")}',
+                                      style: TextStyle(color: textSecondaryColor),
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit,
+                                              color: AppColors.primary),
+                                          onPressed: () => _editExercise(alt),
+                                          tooltip: 'Edit Exercise',
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.add_circle,
+                                              color: AppColors.primary),
+                                          onPressed: () {
+                                            _addExercise(alt);
+                                            Navigator.of(context).pop();
+                                          },
+                                          tooltip: 'Add to Workout',
+                                        ),
+                                      ],
+                                    ),
+                                  );
                                 },
-                                tooltip: 'Add to Workout',
                               ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
-          },
+          }
         );
       },
     );

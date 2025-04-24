@@ -88,17 +88,31 @@ class Workout {
       for (final workoutData in response) {
         final workoutId = workoutData['id'];
 
-        // Get exercises for this workout
+        // Get exercises for this workout with custom sets and reps
         final exercisesResponse = await supabase
             .from('workout_exercises')
-            .select('exercise:exercise_id(*)')
+            .select('exercise:exercise_id(*), custom_sets, custom_reps')
             .eq('workout_id', workoutId)
             .order('order_index');
 
         final List<Exercise> exercises = [];
         for (final item in exercisesResponse) {
           final exerciseData = item['exercise'] as Map<String, dynamic>;
-          exercises.add(Exercise.fromMap(exerciseData));
+          final customSets = item['custom_sets'];
+          final customReps = item['custom_reps'];
+          
+          // Create the exercise with base data
+          Exercise exercise = Exercise.fromMap(exerciseData);
+          
+          // Override with custom sets and reps if available
+          if (customSets != null) {
+            exercise = exercise.copyWith(sets: customSets);
+          }
+          if (customReps != null) {
+            exercise = exercise.copyWith(reps: customReps);
+          }
+          
+          exercises.add(exercise);
         }
 
         workouts.add(Workout.fromMap(workoutData, exercises));
@@ -142,11 +156,13 @@ class Workout {
           exerciseId = newExercise.id;
         }
 
-        // Add to workout_exercises junction table
+        // Add to workout_exercises junction table with custom sets and reps
         await supabase.from('workout_exercises').insert({
           'workout_id': workoutId,
           'exercise_id': exerciseId,
           'order_index': i,
+          'custom_sets': exercise.sets,
+          'custom_reps': exercise.reps,
         });
       }
 
@@ -191,13 +207,37 @@ class Workout {
           ));
           if (newExercise == null) throw Exception('Failed to create exercise');
           exerciseId = newExercise.id;
+        } else {
+          // Check if the exercise needs to be updated (sets/reps)
+          // We need to do this without modifying the original exercise in the database
+          // So we'll use the workout_exercises junction table to store the custom sets/reps
+          
+          // First check if the exercise has custom sets or reps for this workout
+          final exerciseInfo = await supabase
+              .from('workout_exercises')
+              .select('custom_sets, custom_reps')
+              .eq('workout_id', id)
+              .eq('exercise_id', exerciseId)
+              .maybeSingle();
+              
+          if (exerciseInfo != null) {
+            final currentSets = exerciseInfo['custom_sets'];
+            final currentReps = exerciseInfo['custom_reps'];
+            
+            // Only update if changed
+            if (exercise.sets != currentSets || exercise.reps != currentReps) {
+              debugPrint('Updating exercise ${exercise.name} sets/reps: ${exercise.sets}/${exercise.reps}');
+            }
+          }
         }
 
-        // Add to workout_exercises junction table
+        // Add to workout_exercises junction table with custom sets and reps
         await supabase.from('workout_exercises').insert({
           'workout_id': id,
           'exercise_id': exerciseId,
           'order_index': i,
+          'custom_sets': exercise.sets,
+          'custom_reps': exercise.reps,
         });
       }
 
@@ -246,14 +286,28 @@ class Workout {
       // Get exercises for this workout
       final exercisesResponse = await supabase
           .from('workout_exercises')
-          .select('exercise:exercise_id(*)')
+          .select('exercise:exercise_id(*), custom_sets, custom_reps')
           .eq('workout_id', workoutId)
           .order('order_index');
 
       final List<Exercise> exercises = [];
       for (final item in exercisesResponse) {
         final exerciseData = item['exercise'] as Map<String, dynamic>;
-        exercises.add(Exercise.fromMap(exerciseData));
+        final customSets = item['custom_sets'];
+        final customReps = item['custom_reps'];
+        
+        // Create the exercise with base data
+        Exercise exercise = Exercise.fromMap(exerciseData);
+        
+        // Override with custom sets and reps if available
+        if (customSets != null) {
+          exercise = exercise.copyWith(sets: customSets);
+        }
+        if (customReps != null) {
+          exercise = exercise.copyWith(reps: customReps);
+        }
+        
+        exercises.add(exercise);
       }
 
       return Workout.fromMap(workoutResponse, exercises);
