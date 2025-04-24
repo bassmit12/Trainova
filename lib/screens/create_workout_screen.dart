@@ -616,134 +616,138 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                             key: Key('exercise_${exercise.id}_$index'),
                             color: cardBackgroundColor,
                             margin: const EdgeInsets.only(bottom: 12),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Exercise icon and drag handle
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary.withOpacity(
-                                            0.1,
+                            child: InkWell(
+                              onTap: () => _editExercise(exercise),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Exercise icon and drag handle
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary
+                                                .withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
+                                          padding: const EdgeInsets.all(8),
+                                          child: const Icon(
+                                            Icons.fitness_center,
+                                            color: AppColors.primary,
                                           ),
                                         ),
-                                        padding: const EdgeInsets.all(8),
-                                        child: const Icon(
-                                          Icons.fitness_center,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
+                                        const SizedBox(width: 12),
 
-                                      // Exercise name and muscle groups
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                        // Exercise name and muscle groups
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                exercise.name,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                  color: textPrimaryColor,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                exercise.targetMuscles
+                                                    .join(', '),
+                                                style: TextStyle(
+                                                  color: textSecondaryColor,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        // Delete button
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            color: Colors.red,
+                                          ),
+                                          onPressed: () =>
+                                              _removeExercise(index),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          visualDensity:
+                                              VisualDensity.compact,
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 16),
+
+                                    // Sets and reps controls
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        // Sets control
+                                        Row(
                                           children: [
                                             Text(
-                                              exercise.name,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: textPrimaryColor,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              exercise.targetMuscles.join(', '),
+                                              'Sets: ',
                                               style: TextStyle(
                                                 color: textSecondaryColor,
-                                                fontSize: 12,
+                                                fontSize: 14,
                                               ),
+                                            ),
+                                            _buildNumberControl(
+                                              exercise.sets,
+                                              (value) {
+                                                if (value >= 1 && value <= 10) {
+                                                  _updateExerciseSetsReps(
+                                                    index,
+                                                    sets: value,
+                                                  );
+                                                }
+                                              },
+                                              min: 1,
+                                              max: 10,
                                             ),
                                           ],
                                         ),
-                                      ),
 
-                                      // Delete button
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete,
-                                          color: Colors.red,
+                                        // Reps control
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Reps: ',
+                                              style: TextStyle(
+                                                color: textSecondaryColor,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            _buildNumberControl(
+                                              exercise.reps,
+                                              (value) {
+                                                if (value >= 1 && value <= 50) {
+                                                  _updateExerciseSetsReps(
+                                                    index,
+                                                    reps: value,
+                                                  );
+                                                }
+                                              },
+                                              min: 1,
+                                              max: 50,
+                                            ),
+                                          ],
                                         ),
-                                        onPressed: () => _removeExercise(index),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ],
-                                  ),
-
-                                  const SizedBox(height: 16),
-
-                                  // Sets and reps controls
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      // Sets control
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Sets: ',
-                                            style: TextStyle(
-                                              color: textSecondaryColor,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          _buildNumberControl(
-                                            exercise.sets,
-                                            (value) {
-                                              if (value >= 1 && value <= 10) {
-                                                _updateExerciseSetsReps(
-                                                  index,
-                                                  sets: value,
-                                                );
-                                              }
-                                            },
-                                            min: 1,
-                                            max: 10,
-                                          ),
-                                        ],
-                                      ),
-
-                                      // Reps control
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Reps: ',
-                                            style: TextStyle(
-                                              color: textSecondaryColor,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          _buildNumberControl(
-                                            exercise.reps,
-                                            (value) {
-                                              if (value >= 1 && value <= 50) {
-                                                _updateExerciseSetsReps(
-                                                  index,
-                                                  reps: value,
-                                                );
-                                              }
-                                            },
-                                            min: 1,
-                                            max: 50,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );

@@ -101,4 +101,9 @@ flutter {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
+    
+    // Add Play Core library to fix the missing classes error
+    implementation("com.google.android.play:core:1.10.3")
+    // Add Play Core KTX for Kotlin extensions (optional but recommended)
+    implementation("com.google.android.play:core-ktx:1.8.1")
 }

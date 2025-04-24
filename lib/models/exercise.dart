@@ -228,8 +228,12 @@ class Exercise {
       final supabase = Supabase.instance.client;
       final userId = supabase.auth.currentUser?.id;
 
-      // Verify ownership
-      if (createdBy != userId) {
+      // Get admin mode status from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final isAdmin = prefs.getBool('admin_mode') ?? false;
+
+      // Verify ownership or admin status
+      if (createdBy != userId && !isAdmin) {
         throw Exception('You do not own this exercise');
       }
 
