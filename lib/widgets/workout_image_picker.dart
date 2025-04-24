@@ -62,7 +62,7 @@ class WorkoutImagePicker extends StatelessWidget {
   Widget build(BuildContext context) {
     // Determine what type of image we're dealing with
     final bool isNetworkImage = imageUrl != null &&
-        (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://'));
+        (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://') || imageUrl!.startsWith('http'));
     final bool isAssetImage =
         imageUrl != null && imageUrl!.startsWith('assets/');
     final imageKey =
@@ -100,9 +100,6 @@ class WorkoutImagePicker extends StatelessWidget {
                     debugPrint("Workout image error: $error for $url");
                     return _buildPlaceholder(isError: true);
                   },
-                  // Use a unique cache key to prevent stale images
-                  cacheKey:
-                      '${imageUrl}_${DateTime.now().millisecondsSinceEpoch}',
                 ),
               )
             else if (isAssetImage)
