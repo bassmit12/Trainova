@@ -61,8 +61,11 @@ class WorkoutImagePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Determine what type of image we're dealing with
-    final bool isNetworkImage = imageUrl != null &&
-        (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://') || imageUrl!.startsWith('http'));
+    final bool isNetworkImage =
+        imageUrl != null &&
+        (imageUrl!.startsWith('http://') ||
+            imageUrl!.startsWith('https://') ||
+            imageUrl!.startsWith('http'));
     final bool isAssetImage =
         imageUrl != null && imageUrl!.startsWith('assets/');
     final imageKey =
@@ -93,9 +96,12 @@ class WorkoutImagePicker extends StatelessWidget {
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
-                  placeholder: (context, url) => Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
+                  placeholder:
+                      (context, url) => Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
                   errorWidget: (context, url, error) {
                     debugPrint("Workout image error: $error for $url");
                     return _buildPlaceholder(isError: true);
@@ -125,7 +131,8 @@ class WorkoutImagePicker extends StatelessWidget {
               Container(
                 color: Colors.black.withOpacity(0.4),
                 child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white)),
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
               ),
 
             // Camera icon overlay
@@ -178,20 +185,14 @@ class WorkoutImagePicker extends StatelessWidget {
         if (!isError)
           Text(
             'Tap to select',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         if (isError && imageUrl != null)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               'URL may be invalid',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.red, fontSize: 12),
             ),
           ),
       ],

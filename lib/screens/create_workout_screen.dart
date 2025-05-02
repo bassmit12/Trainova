@@ -651,8 +651,9 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                                           decoration: BoxDecoration(
                                             color: AppColors.primary
                                                 .withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           padding: const EdgeInsets.all(8),
                                           child: const Icon(
@@ -681,8 +682,9 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                exercise.targetMuscles
-                                                    .join(', '),
+                                                exercise.targetMuscles.join(
+                                                  ', ',
+                                                ),
                                                 style: TextStyle(
                                                   color: textSecondaryColor,
                                                   fontSize: 12,
@@ -699,12 +701,10 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                                           Icons.delete,
                                           color: Colors.red,
                                         ),
-                                        onPressed: () =>
-                                            _removeExercise(index),
+                                        onPressed: () => _removeExercise(index),
                                         padding: EdgeInsets.zero,
                                         constraints: const BoxConstraints(),
-                                        visualDensity:
-                                            VisualDensity.compact,
+                                        visualDensity: VisualDensity.compact,
                                       ),
                                     ],
                                   ),
@@ -834,40 +834,59 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                   filteredExercises = List.from(_availableExercises);
                 } else {
                   final normalizedQuery = query.toLowerCase();
-                  filteredExercises = _availableExercises.where((exercise) {
-                    // Check if exercise name contains query
-                    final nameMatch = exercise.name.toLowerCase().contains(normalizedQuery);
-                    
-                    // Check if any target muscle contains query
-                    final muscleMatch = exercise.targetMuscles.any(
-                      (muscle) => muscle.toLowerCase().contains(normalizedQuery),
-                    );
-                    
-                    // Check if difficulty contains query
-                    final difficultyMatch = exercise.difficulty.toLowerCase().contains(normalizedQuery);
-                    
-                    // Check if description contains query
-                    final descriptionMatch = exercise.description.toLowerCase().contains(normalizedQuery);
-                    
-                    return nameMatch || muscleMatch || difficultyMatch || descriptionMatch;
-                  }).toList();
-                  
+                  filteredExercises =
+                      _availableExercises.where((exercise) {
+                        // Check if exercise name contains query
+                        final nameMatch = exercise.name.toLowerCase().contains(
+                          normalizedQuery,
+                        );
+
+                        // Check if any target muscle contains query
+                        final muscleMatch = exercise.targetMuscles.any(
+                          (muscle) =>
+                              muscle.toLowerCase().contains(normalizedQuery),
+                        );
+
+                        // Check if difficulty contains query
+                        final difficultyMatch = exercise.difficulty
+                            .toLowerCase()
+                            .contains(normalizedQuery);
+
+                        // Check if description contains query
+                        final descriptionMatch = exercise.description
+                            .toLowerCase()
+                            .contains(normalizedQuery);
+
+                        return nameMatch ||
+                            muscleMatch ||
+                            difficultyMatch ||
+                            descriptionMatch;
+                      }).toList();
+
                   // Sort by relevance - items with matching names first, followed by target muscles
                   filteredExercises.sort((a, b) {
                     // Name matches are highest priority
-                    final aNameMatch = a.name.toLowerCase().contains(normalizedQuery);
-                    final bNameMatch = b.name.toLowerCase().contains(normalizedQuery);
-                    
+                    final aNameMatch = a.name.toLowerCase().contains(
+                      normalizedQuery,
+                    );
+                    final bNameMatch = b.name.toLowerCase().contains(
+                      normalizedQuery,
+                    );
+
                     if (aNameMatch && !bNameMatch) return -1;
                     if (!aNameMatch && bNameMatch) return 1;
-                    
+
                     // Target muscle matches are second priority
-                    final aTargetMatch = a.targetMuscles.any((m) => m.toLowerCase().contains(normalizedQuery));
-                    final bTargetMatch = b.targetMuscles.any((m) => m.toLowerCase().contains(normalizedQuery));
-                    
+                    final aTargetMatch = a.targetMuscles.any(
+                      (m) => m.toLowerCase().contains(normalizedQuery),
+                    );
+                    final bTargetMatch = b.targetMuscles.any(
+                      (m) => m.toLowerCase().contains(normalizedQuery),
+                    );
+
                     if (aTargetMatch && !bTargetMatch) return -1;
                     if (!aTargetMatch && bTargetMatch) return 1;
-                    
+
                     // If both have similar relevance, sort alphabetically
                     return a.name.compareTo(b.name);
                   });

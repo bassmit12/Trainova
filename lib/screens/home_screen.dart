@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
     'workoutCount': 0,
     'caloriesBurned': 0,
     'hoursSpent': 0.0,
-    'timeRange': 30
+    'timeRange': 30,
   };
   bool _isLoadingStats = true;
 
@@ -181,18 +181,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    final backgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkBackground
-        : AppColors.lightBackground;
-    final textPrimaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
-    final textSecondaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-    final cardBackgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkCardBackground
-        : AppColors.lightCardBackground;
+    final backgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkBackground
+            : AppColors.lightBackground;
+    final textPrimaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
+    final textSecondaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary;
+    final cardBackgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkCardBackground
+            : AppColors.lightCardBackground;
 
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -203,14 +207,17 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('No workouts found',
-                style: TextStyle(fontSize: 18, color: textPrimaryColor)),
+            Text(
+              'No workouts found',
+              style: TextStyle(fontSize: 18, color: textPrimaryColor),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadWorkouts,
               child: const Text('Refresh'),
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
             ),
           ],
         ),
@@ -234,10 +241,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     'assets/images/brands/trainova_v3.png',
                     width: 40,
                     height: 40,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                        Icons.fitness_center,
-                        color: AppColors.primary,
-                        size: 28),
+                    errorBuilder:
+                        (context, error, stackTrace) => Icon(
+                          Icons.fitness_center,
+                          color: AppColors.primary,
+                          size: 28,
+                        ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -262,7 +271,9 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverToBoxAdapter(
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 16.0),
+                  horizontal: 16.0,
+                  vertical: 16.0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -275,9 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                         children: [
-                          TextSpan(
-                            text: 'Welcome to ',
-                          ),
+                          TextSpan(text: 'Welcome to '),
                           TextSpan(
                             text: 'Trainova',
                             style: TextStyle(
@@ -291,10 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Your personalized fitness journey starts here',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: textSecondaryColor,
-                      ),
+                      style: TextStyle(fontSize: 16, color: textSecondaryColor),
                     ),
                   ],
                 ),
@@ -316,18 +322,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildFeaturedWorkout(
-                        _workouts.isNotEmpty ? _workouts.first : null, context),
+                      _workouts.isNotEmpty ? _workouts.first : null,
+                      context,
+                    ),
                     const SizedBox(height: 24),
                     _buildSectionTitle('Your Weekly Plan', textPrimaryColor),
                     const SizedBox(height: 12),
-                    _buildWeeklyProgress(cardBackgroundColor, backgroundColor,
-                        textPrimaryColor, textSecondaryColor),
+                    _buildWeeklyProgress(
+                      cardBackgroundColor,
+                      backgroundColor,
+                      textPrimaryColor,
+                      textSecondaryColor,
+                    ),
                     const SizedBox(height: 24),
                     _buildSectionTitle(
-                        'Your Workout Statistics', textPrimaryColor),
+                      'Your Workout Statistics',
+                      textPrimaryColor,
+                    ),
                     const SizedBox(height: 12),
-                    _buildWorkoutStatistics(cardBackgroundColor,
-                        textPrimaryColor, textSecondaryColor),
+                    _buildWorkoutStatistics(
+                      cardBackgroundColor,
+                      textPrimaryColor,
+                      textSecondaryColor,
+                    ),
                     const SizedBox(height: 24),
                     _buildSectionTitle('Workouts For You', textPrimaryColor),
                   ],
@@ -363,8 +380,11 @@ class _HomeScreenState extends State<HomeScreen> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) => WorkoutCard(
                   workout: _workouts[index % _workouts.length],
-                  onTap: () => _openWorkoutDetails(
-                      context, _workouts[index % _workouts.length]),
+                  onTap:
+                      () => _openWorkoutDetails(
+                        context,
+                        _workouts[index % _workouts.length],
+                      ),
                 ),
                 childCount: _workouts.length > 3 ? 3 : _workouts.length,
               ),
@@ -441,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Container(
-      height: 170,
+      height: 200, // Increased from 170 to 190 to accommodate all content
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -499,6 +519,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
 
                       // Workout description - with maximum 1 line
@@ -545,11 +567,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWeeklyProgress(Color cardBackgroundColor, Color backgroundColor,
-      Color textPrimaryColor, Color textSecondaryColor) {
-    final shadowColor = Provider.of<ThemeProvider>(context).isDarkMode
-        ? Colors.black.withOpacity(0.2)
-        : Colors.black.withOpacity(0.05);
+  Widget _buildWeeklyProgress(
+    Color cardBackgroundColor,
+    Color backgroundColor,
+    Color textPrimaryColor,
+    Color textSecondaryColor,
+  ) {
+    final shadowColor =
+        Provider.of<ThemeProvider>(context).isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.black.withOpacity(0.05);
 
     // Create a fixed-size weekly plan visualization
     return Container(
@@ -565,23 +592,32 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: _isLoadingHistory
-          ? const Center(child: CircularProgressIndicator())
-          : _buildWeeklyPlanContent(
-              textPrimaryColor, textSecondaryColor, backgroundColor),
+      child:
+          _isLoadingHistory
+              ? const Center(child: CircularProgressIndicator())
+              : _buildWeeklyPlanContent(
+                textPrimaryColor,
+                textSecondaryColor,
+                backgroundColor,
+              ),
     );
   }
 
   Widget _buildWeeklyPlanContent(
-      Color textPrimaryColor, Color textSecondaryColor, Color backgroundColor) {
+    Color textPrimaryColor,
+    Color textSecondaryColor,
+    Color backgroundColor,
+  ) {
     final now = DateTime.now();
 
     // Calculate the start date (Monday) of the current week
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
 
     // Generate dates for the week (Monday to Sunday)
-    final weekDates =
-        List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
+    final weekDates = List.generate(
+      7,
+      (index) => startOfWeek.add(Duration(days: index)),
+    );
 
     // Compute the completion status for each day
     final completedDays = _getCompletedDaysInWeek(weekDates);
@@ -629,7 +665,9 @@ class _HomeScreenState extends State<HomeScreen> {
         // Today's workout recommendation
         if (_workouts.isNotEmpty)
           _buildTodayWorkoutRecommendation(
-              textPrimaryColor, textSecondaryColor),
+            textPrimaryColor,
+            textSecondaryColor,
+          ),
 
         const SizedBox(height: 16),
 
@@ -722,7 +760,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Build a recommendation for today (or next workout)
   Widget _buildTodayWorkoutRecommendation(
-      Color textPrimaryColor, Color textSecondaryColor) {
+    Color textPrimaryColor,
+    Color textSecondaryColor,
+  ) {
     // Find most suitable workout to recommend
     final Workout? workout = _getRecommendedWorkout();
 
@@ -735,10 +775,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           'Today\'s recommended workout:',
-          style: TextStyle(
-            fontSize: 14,
-            color: textSecondaryColor,
-          ),
+          style: TextStyle(fontSize: 14, color: textSecondaryColor),
         ),
         const SizedBox(height: 8),
         InkWell(
@@ -772,21 +809,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: textPrimaryColor,
                         fontSize: 16,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       '${workout.duration} · ${workout.difficulty}',
-                      style: TextStyle(
-                        color: textSecondaryColor,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: textSecondaryColor, fontSize: 13),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: textSecondaryColor,
-              ),
+              Icon(Icons.chevron_right, color: textSecondaryColor),
             ],
           ),
         ),
@@ -804,9 +837,10 @@ class _HomeScreenState extends State<HomeScreen> {
     Map<String, int> recentTypeCount = {};
 
     final twoWeeksAgo = DateTime.now().subtract(const Duration(days: 14));
-    final recentWorkouts = _workoutHistory
-        .where((history) => history.completedAt.isAfter(twoWeeksAgo))
-        .toList();
+    final recentWorkouts =
+        _workoutHistory
+            .where((history) => history.completedAt.isAfter(twoWeeksAgo))
+            .toList();
 
     for (var history in recentWorkouts) {
       final type = _findWorkoutTypeById(history.workoutId);
@@ -831,8 +865,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Otherwise pick the least frequently used
     if (recentTypeCount.isNotEmpty) {
-      final sortedEntries = recentTypeCount.entries.toList()
-        ..sort((a, b) => a.value.compareTo(b.value));
+      final sortedEntries =
+          recentTypeCount.entries.toList()
+            ..sort((a, b) => a.value.compareTo(b.value));
 
       if (sortedEntries.isNotEmpty) {
         return _findWorkoutByType(sortedEntries.first.key);
@@ -852,31 +887,35 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color textSecondaryColor,
   }) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         // The day circle
         Container(
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: completed
-                ? AppColors.primary
-                : isToday
+            color:
+                completed
+                    ? AppColors.primary
+                    : isToday
                     ? AppColors.primary.withOpacity(0.2)
                     : backgroundColor,
             shape: BoxShape.circle,
-            border: isToday
-                ? Border.all(color: AppColors.primary, width: 2)
-                : completed
+            border:
+                isToday
+                    ? Border.all(color: AppColors.primary, width: 2)
+                    : completed
                     ? null
                     : Border.all(color: Colors.grey.withOpacity(0.3)),
           ),
           child: Center(
-            child: completed
-                ? const Icon(Icons.check, color: Colors.white, size: 16)
-                : null,
+            child:
+                completed
+                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    : null,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4), // Reduced from 6 to 4
         // The day label
         Text(
           day,
@@ -908,11 +947,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _buildWorkoutStatistics(Color cardBackgroundColor,
-      Color textPrimaryColor, Color textSecondaryColor) {
-    final shadowColor = Provider.of<ThemeProvider>(context).isDarkMode
-        ? Colors.black.withOpacity(0.2)
-        : Colors.black.withOpacity(0.05);
+  Widget _buildWorkoutStatistics(
+    Color cardBackgroundColor,
+    Color textPrimaryColor,
+    Color textSecondaryColor,
+  ) {
+    final shadowColor =
+        Provider.of<ThemeProvider>(context).isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.black.withOpacity(0.05);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -927,51 +970,52 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: _isLoadingStats
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Your 30-Day Progress',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: textPrimaryColor,
+      child:
+          _isLoadingStats
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your 30-Day Progress',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: textPrimaryColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildStatItem(
-                      Icons.fitness_center,
-                      '${_workoutStats['workoutCount']}',
-                      'Workouts',
-                      AppColors.primary,
-                      textPrimaryColor,
-                      textSecondaryColor,
-                    ),
-                    _buildStatItem(
-                      Icons.local_fire_department,
-                      '${NumberFormat("#,###").format(_workoutStats['caloriesBurned'])}',
-                      'Calories',
-                      Colors.orange,
-                      textPrimaryColor,
-                      textSecondaryColor,
-                    ),
-                    _buildStatItem(
-                      Icons.timer,
-                      '${_workoutStats['hoursSpent'].toStringAsFixed(1)}',
-                      'Hours',
-                      Colors.blue,
-                      textPrimaryColor,
-                      textSecondaryColor,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildStatItem(
+                        Icons.fitness_center,
+                        '${_workoutStats['workoutCount']}',
+                        'Workouts',
+                        AppColors.primary,
+                        textPrimaryColor,
+                        textSecondaryColor,
+                      ),
+                      _buildStatItem(
+                        Icons.local_fire_department,
+                        '${NumberFormat("#,###").format(_workoutStats['caloriesBurned'])}',
+                        'Calories',
+                        Colors.orange,
+                        textPrimaryColor,
+                        textSecondaryColor,
+                      ),
+                      _buildStatItem(
+                        Icons.timer,
+                        '${_workoutStats['hoursSpent'].toStringAsFixed(1)}',
+                        'Hours',
+                        Colors.blue,
+                        textPrimaryColor,
+                        textSecondaryColor,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
     );
   }
 
@@ -992,9 +1036,7 @@ class _HomeScreenState extends State<HomeScreen> {
             color: iconColor.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Center(
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
+          child: Center(child: Icon(icon, color: iconColor, size: 24)),
         ),
         const SizedBox(height: 8),
         Text(
@@ -1005,13 +1047,7 @@ class _HomeScreenState extends State<HomeScreen> {
             color: textPrimaryColor,
           ),
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: textSecondaryColor,
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 14, color: textSecondaryColor)),
       ],
     );
   }

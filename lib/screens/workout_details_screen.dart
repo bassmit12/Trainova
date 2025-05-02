@@ -1086,6 +1086,8 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                           fontWeight: FontWeight.w600,
                           color: textPrimaryColor,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -1108,29 +1110,32 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children:
-                            exercise.targetMuscles.map((muscle) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  muscle,
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 12,
+                      Container(
+                        width: double.infinity,
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children:
+                              exercise.targetMuscles.map((muscle) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
                                   ),
-                                ),
-                              );
-                            }).toList(),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    muscle,
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                        ),
                       ),
                     ],
                   ),

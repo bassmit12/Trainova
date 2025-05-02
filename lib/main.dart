@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/supabase_config.dart';
 import 'config/app_config.dart';
+import 'config/env_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/workout_screen.dart';
@@ -11,6 +12,7 @@ import 'screens/progress_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/app_update_screen.dart';
+import 'screens/ai_workout_chat_screen.dart';
 import 'services/auth_service.dart';
 import 'services/workout_session_service.dart';
 import 'widgets/bottom_nav_bar.dart';
@@ -19,9 +21,13 @@ import 'utils/app_colors.dart';
 import 'providers/theme_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/update_provider.dart';
+import 'providers/workout_chat_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await EnvConfig.initialize();
 
   // Initialize Supabase
   await Supabase.initialize(
@@ -56,6 +62,7 @@ class MyApp extends StatelessWidget {
                 githubRepo: AppConfig.githubRepo,
               ),
         ),
+        ChangeNotifierProvider(create: (_) => WorkoutChatProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -67,6 +74,7 @@ class MyApp extends StatelessWidget {
               '/': (context) => const AuthWrapper(),
               '/welcome': (context) => const WelcomeScreen(),
               '/main': (context) => const MainScreen(),
+              '/ai_workout_creator': (context) => const AIWorkoutChatScreen(),
             },
             debugShowCheckedModeBanner: false,
           );

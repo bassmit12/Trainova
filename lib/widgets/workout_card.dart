@@ -10,7 +10,7 @@ class WorkoutCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const WorkoutCard({Key? key, required this.workout, required this.onTap})
-      : super(key: key);
+    : super(key: key);
 
   // Get a string of target muscles from all exercises in the workout
   String getTargetMuscles() {
@@ -35,21 +35,26 @@ class WorkoutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    final cardBackgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkCardBackground
-        : AppColors.lightCardBackground;
-    final textPrimaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
-    final textSecondaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-    final textLightColor = themeProvider.isDarkMode
-        ? AppColors.darkTextLight
-        : AppColors.lightTextLight;
-    final shadowColor = themeProvider.isDarkMode
-        ? Colors.black.withOpacity(0.2)
-        : Colors.black.withOpacity(0.05);
+    final cardBackgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkCardBackground
+            : AppColors.lightCardBackground;
+    final textPrimaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
+    final textSecondaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary;
+    final textLightColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextLight
+            : AppColors.lightTextLight;
+    final shadowColor =
+        themeProvider.isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.black.withOpacity(0.05);
 
     return GestureDetector(
       onTap: onTap,
@@ -78,35 +83,35 @@ class WorkoutCard extends StatelessWidget {
                 imageUrl: workout.imageUrl,
                 height: 160,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: 160,
-                  color: AppColors.primary.withOpacity(0.1),
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 160,
-                  color: AppColors.primary.withOpacity(0.2),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.fitness_center,
-                        size: 50,
-                        color: AppColors.primary,
+                placeholder:
+                    (context, url) => Container(
+                      height: 160,
+                      color: AppColors.primary.withOpacity(0.1),
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                errorWidget:
+                    (context, url, error) => Container(
+                      height: 160,
+                      color: AppColors.primary.withOpacity(0.2),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.fitness_center,
+                            size: 50,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            workout.type,
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        workout.type,
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
               ),
             ),
             Padding(
@@ -116,15 +121,21 @@ class WorkoutCard extends StatelessWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        workout.name,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: textPrimaryColor,
+                      Flexible(
+                        child: Text(
+                          workout.name,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimaryColor,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
@@ -148,10 +159,9 @@ class WorkoutCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     workout.description,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: textSecondaryColor,
-                    ),
+                    style: TextStyle(fontSize: 14, color: textSecondaryColor),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -163,12 +173,13 @@ class WorkoutCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${workout.duration} min',
+                        '${workout.duration}',
                         style: TextStyle(
                           fontSize: 14,
                           color: textLightColor,
                           fontWeight: FontWeight.w500,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(width: 16),
                       Icon(
@@ -177,12 +188,16 @@ class WorkoutCard extends StatelessWidget {
                         color: textLightColor,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        getTargetMuscles(),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: textLightColor,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          getTargetMuscles(),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: textLightColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],

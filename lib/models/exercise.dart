@@ -87,7 +87,8 @@ class Exercise {
 
   // Method to get alternative exercises based on equipment availability
   static Future<List<Exercise>> getAlternativeExercises(
-      Exercise exercise) async {
+    Exercise exercise,
+  ) async {
     final supabase = Supabase.instance.client;
 
     // Find exercises targeting similar muscle groups
@@ -96,8 +97,12 @@ class Exercise {
         .select()
         .neq('id', exercise.id) // Not the same exercise
         .overlaps(
-            'target_muscles', exercise.targetMuscles) // Similar muscle groups
-        .or('is_public.eq.true,created_by.eq.${supabase.auth.currentUser?.id}') // Public or owned by user
+          'target_muscles',
+          exercise.targetMuscles,
+        ) // Similar muscle groups
+        .or(
+          'is_public.eq.true,created_by.eq.${supabase.auth.currentUser?.id}',
+        ) // Public or owned by user
         .order('created_at');
 
     if (response.isEmpty) return [];
@@ -107,12 +112,14 @@ class Exercise {
 
     // Sort by number of matching muscle targets (most similar first)
     alternatives.sort((a, b) {
-      final aMatches = a.targetMuscles
-          .where((m) => exercise.targetMuscles.contains(m))
-          .length;
-      final bMatches = b.targetMuscles
-          .where((m) => exercise.targetMuscles.contains(m))
-          .length;
+      final aMatches =
+          a.targetMuscles
+              .where((m) => exercise.targetMuscles.contains(m))
+              .length;
+      final bMatches =
+          b.targetMuscles
+              .where((m) => exercise.targetMuscles.contains(m))
+              .length;
       return bMatches.compareTo(aMatches);
     });
 
@@ -160,7 +167,8 @@ class Exercise {
 
   // Fetch multiple exercises by their IDs
   static Future<Map<String, Exercise>> fetchExercisesByIds(
-      List<String> ids) async {
+    List<String> ids,
+  ) async {
     try {
       if (ids.isEmpty) {
         return {};
@@ -209,11 +217,12 @@ class Exercise {
       final exerciseData = exercise.toMap();
       exerciseData['created_by'] = userId;
 
-      final response = await supabase
-          .from('exercises')
-          .insert(exerciseData)
-          .select()
-          .single();
+      final response =
+          await supabase
+              .from('exercises')
+              .insert(exerciseData)
+              .select()
+              .single();
 
       return Exercise.fromMap(response);
     } catch (e) {
@@ -237,12 +246,13 @@ class Exercise {
         throw Exception('You do not own this exercise');
       }
 
-      final response = await supabase
-          .from('exercises')
-          .update(toMap())
-          .eq('id', id)
-          .select()
-          .single();
+      final response =
+          await supabase
+              .from('exercises')
+              .update(toMap())
+              .eq('id', id)
+              .select()
+              .single();
 
       return Exercise.fromMap(response);
     } catch (e) {
@@ -262,11 +272,12 @@ class Exercise {
       final isAdmin = prefs.getBool('admin_mode') ?? false;
 
       // First check if the current user is the owner of this exercise
-      final exercise = await supabase
-          .from('exercises')
-          .select('created_by')
-          .eq('id', exerciseId)
-          .single();
+      final exercise =
+          await supabase
+              .from('exercises')
+              .select('created_by')
+              .eq('id', exerciseId)
+              .single();
 
       final exerciseCreator = exercise['created_by'];
 
