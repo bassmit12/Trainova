@@ -333,6 +333,9 @@ User request: ${prompt}
             name: exerciseData['name'] ?? 'Unnamed Exercise',
             description:
                 exerciseData['description'] ?? 'No description provided',
+            category:
+                exerciseData['type'] ??
+                'Strength', // Add required category parameter
             sets: sets,
             reps: reps,
             imageUrl: '', // No image for AI generated exercises by default

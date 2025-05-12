@@ -161,9 +161,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         ),
                       ),
                       // Add extra spacing between categories and AI Workout Creator
-                      const SliverToBoxAdapter(
-                        child: SizedBox(height: 16),
-                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
                       // AI Workout Creator Banner
                       SliverToBoxAdapter(
                         child: Padding(
@@ -206,7 +204,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                         const SizedBox(width: 16),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: const [
                                               Text(
                                                 "AI Workout Creator",
@@ -232,13 +231,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                     const SizedBox(height: 16),
                                     Container(
                                       width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: const [
                                           Text(
                                             "Get Started",

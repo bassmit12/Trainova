@@ -164,7 +164,7 @@ class Workout {
           'exercise_id': exerciseId,
           'order_index': i,
           'custom_sets': exercise.sets,
-          'custom_reps': exercise.reps,
+          // We don't set custom_reps as reps will be determined by AI
         });
       }
 

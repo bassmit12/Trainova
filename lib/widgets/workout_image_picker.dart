@@ -75,10 +75,12 @@ class WorkoutImagePicker extends StatelessWidget {
       onTap: isUploading ? null : () => _pickImage(context),
       child: Container(
         key: imageKey,
-        height: 200,
+        width: double.infinity,
+        height: 250, // Increased height for better visibility
         decoration: BoxDecoration(
           color: AppColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius:
+              BorderRadius.zero, // Removed border radius for full-width effect
           border: Border.all(
             color: AppColors.primary.withOpacity(0.3),
             width: 1,
@@ -88,40 +90,35 @@ class WorkoutImagePicker extends StatelessWidget {
           alignment: Alignment.center,
           children: [
             if (isNetworkImage)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(11),
-                child: CachedNetworkImage(
-                  key: ValueKey(imageUrl),
-                  imageUrl: imageUrl!,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  placeholder:
-                      (context, url) => Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
+              // Display network image (no rounded corners)
+              CachedNetworkImage(
+                key: ValueKey(imageUrl),
+                imageUrl: imageUrl!,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                placeholder:
+                    (context, url) => Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
                       ),
-                  errorWidget: (context, url, error) {
-                    debugPrint("Workout image error: $error for $url");
-                    return _buildPlaceholder(isError: true);
-                  },
-                ),
+                    ),
+                errorWidget: (context, url, error) {
+                  debugPrint("Workout image error: $error for $url");
+                  return _buildPlaceholder(isError: true);
+                },
               )
             else if (isAssetImage)
-              // Display local asset image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(11),
-                child: Image.asset(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (context, error, stackTrace) {
-                    debugPrint("Asset image error: $error for $imageUrl");
-                    return _buildPlaceholder(isError: true);
-                  },
-                ),
+              // Display local asset image (no rounded corners)
+              Image.asset(
+                imageUrl!,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint("Asset image error: $error for $imageUrl");
+                  return _buildPlaceholder(isError: true);
+                },
               )
             else
               _buildPlaceholder(),
@@ -137,10 +134,10 @@ class WorkoutImagePicker extends StatelessWidget {
 
             // Camera icon overlay
             Positioned(
-              bottom: 10,
-              right: 10,
+              bottom: 16,
+              right: 16,
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
@@ -155,7 +152,7 @@ class WorkoutImagePicker extends StatelessWidget {
                 child: Icon(
                   imageUrl != null ? Icons.edit : Icons.camera_alt,
                   color: Colors.white,
-                  size: 20,
+                  size: 24,
                 ),
               ),
             ),

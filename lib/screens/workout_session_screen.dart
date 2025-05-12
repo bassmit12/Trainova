@@ -4,15 +4,17 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/workout.dart';
 import '../models/exercise.dart';
 import '../models/workout_set.dart';
+import '../models/weight_prediction.dart';
 import '../utils/app_colors.dart';
 import '../services/workout_session_service.dart';
+import '../services/progressive_overload_service.dart';
 import '../providers/theme_provider.dart';
 
 class WorkoutSessionScreen extends StatefulWidget {
   final Workout workout;
 
   const WorkoutSessionScreen({Key? key, required this.workout})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<WorkoutSessionScreen> createState() => _WorkoutSessionScreenState();
@@ -20,7 +22,9 @@ class WorkoutSessionScreen extends StatefulWidget {
 
 class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   late final WorkoutSessionService _sessionService;
+  late final ProgressiveOverloadService _predictionService;
   final Map<String, List<WorkoutSet>> _exerciseSets = {};
+  final Map<String, WeightPrediction?> _exercisePredictions = {};
   int _currentExerciseIndex = 0;
   bool _isInitializing = true;
   String? _error;
@@ -28,8 +32,11 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   @override
   void initState() {
     super.initState();
-    _sessionService =
-        Provider.of<WorkoutSessionService>(context, listen: false);
+    _sessionService = Provider.of<WorkoutSessionService>(
+      context,
+      listen: false,
+    );
+    _predictionService = ProgressiveOverloadService();
     _initializeWorkoutSession();
   }
 
@@ -44,7 +51,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       for (var exercise in widget.workout.exercises) {
         _exerciseSets[exercise.id] = [];
 
-        // Add initial set for each exercise
+        // First fetch recommended weight for this exercise
+        await _fetchRecommendedWeight(exercise);
+
+        // Then add initial set with the prediction data
         await _addSetForExercise(exercise);
       }
     } catch (e) {
@@ -63,10 +73,29 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     if (sets == null) return;
 
     final setNumber = sets.length + 1;
+
+    // Get prediction if available, otherwise use exercise defaults
+    double initialWeight = 0;
+    int initialReps = exercise.reps;
+
+    final prediction = _exercisePredictions[exercise.id];
+    if (prediction != null) {
+      // Use the predicted weight
+      initialWeight = prediction.predictedWeight;
+
+      // Use the suggested reps if available for this set number
+      if (prediction.suggestedReps != null &&
+          prediction.suggestedReps!.isNotEmpty &&
+          setNumber <= prediction.suggestedReps!.length) {
+        initialReps = prediction.suggestedReps![setNumber - 1];
+      }
+    }
+
     final workoutSet = WorkoutSet(
       exerciseId: exercise.id,
       setNumber: setNumber,
-      reps: exercise.reps, // Default to the exercise's recommended reps
+      weight: initialWeight,
+      reps: initialReps,
     );
 
     await _sessionService.addSet(workoutSet);
@@ -75,8 +104,12 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     });
   }
 
-  void _updateSet(WorkoutSet set,
-      {double? weight, int? reps, bool? isCompleted}) async {
+  void _updateSet(
+    WorkoutSet set, {
+    double? weight,
+    int? reps,
+    bool? isCompleted,
+  }) async {
     await _sessionService.updateSet(
       set.id,
       weight: weight,
@@ -86,16 +119,18 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
 
     // Update UI state
     setState(() {
-      final index =
-          _exerciseSets[set.exerciseId]?.indexWhere((s) => s.id == set.id);
+      final index = _exerciseSets[set.exerciseId]?.indexWhere(
+        (s) => s.id == set.id,
+      );
       if (index != null && index != -1) {
         _exerciseSets[set.exerciseId]![index] =
             _exerciseSets[set.exerciseId]![index].copyWith(
-          weight: weight ?? _exerciseSets[set.exerciseId]![index].weight,
-          reps: reps ?? _exerciseSets[set.exerciseId]![index].reps,
-          isCompleted:
-              isCompleted ?? _exerciseSets[set.exerciseId]![index].isCompleted,
-        );
+              weight: weight ?? _exerciseSets[set.exerciseId]![index].weight,
+              reps: reps ?? _exerciseSets[set.exerciseId]![index].reps,
+              isCompleted:
+                  isCompleted ??
+                  _exerciseSets[set.exerciseId]![index].isCompleted,
+            );
       }
     });
   }
@@ -122,23 +157,26 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     );
 
     if (!allSetsCompleted) {
-      final confirmed = await showDialog<bool>(
+      final confirmed =
+          await showDialog<bool>(
             context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Finish Workout?'),
-              content: const Text(
-                  'Not all sets are marked as completed. Do you still want to finish this workout?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('CANCEL'),
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Finish Workout?'),
+                  content: const Text(
+                    'Not all sets are marked as completed. Do you still want to finish this workout?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('CANCEL'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('FINISH'),
+                    ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('FINISH'),
-                ),
-              ],
-            ),
           ) ??
           false;
 
@@ -148,15 +186,15 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     try {
       await _sessionService.completeWorkout();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Workout completed!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Workout completed!')));
         Navigator.pop(context, true);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to complete workout: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to complete workout: $e')));
     }
   }
 
@@ -164,25 +202,31 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    final backgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkBackground
-        : AppColors.lightBackground;
-    final cardBackgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkCardBackground
-        : AppColors.lightCardBackground;
-    final textPrimaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
-    final textSecondaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
+    final backgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkBackground
+            : AppColors.lightBackground;
+    final cardBackgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkCardBackground
+            : AppColors.lightCardBackground;
+    final textPrimaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
+    final textSecondaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary;
 
     if (_isInitializing) {
       return Scaffold(
         backgroundColor: backgroundColor,
         appBar: AppBar(
-          title: Text('Starting Workout',
-              style: TextStyle(color: textPrimaryColor)),
+          title: Text(
+            'Starting Workout',
+            style: TextStyle(color: textPrimaryColor),
+          ),
           backgroundColor: backgroundColor,
           elevation: 0,
           iconTheme: IconThemeData(color: textPrimaryColor),
@@ -195,8 +239,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       return Scaffold(
         backgroundColor: backgroundColor,
         appBar: AppBar(
-          title:
-              Text('Workout Error', style: TextStyle(color: textPrimaryColor)),
+          title: Text(
+            'Workout Error',
+            style: TextStyle(color: textPrimaryColor),
+          ),
           backgroundColor: backgroundColor,
           elevation: 0,
           iconTheme: IconThemeData(color: textPrimaryColor),
@@ -267,17 +313,14 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                   children: [
                     Text(
                       'Exercise ${_currentExerciseIndex + 1}/${widget.workout.exercises.length}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: textSecondaryColor,
-                      ),
+                      style: TextStyle(fontSize: 14, color: textSecondaryColor),
                     ),
                     const Spacer(),
                     TextButton.icon(
                       icon: const Icon(Icons.info_outline, size: 16),
                       label: const Text('Instructions'),
-                      onPressed: () =>
-                          _showExerciseInstructions(currentExercise),
+                      onPressed:
+                          () => _showExerciseInstructions(currentExercise),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         visualDensity: VisualDensity.compact,
@@ -292,52 +335,74 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                   color: cardBackgroundColor,
                   elevation: 2,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Row(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedNetworkImage(
-                            imageUrl: currentExercise.imageUrl,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: AppColors.primary.withOpacity(0.1),
-                              child: const Center(
-                                  child: CircularProgressIndicator()),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              color: AppColors.primary.withOpacity(0.1),
-                              child: const Icon(Icons.fitness_center,
-                                  color: AppColors.primary),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                currentExercise.name,
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: textPrimaryColor,
-                                ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: CachedNetworkImage(
+                                imageUrl: currentExercise.imageUrl,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                placeholder:
+                                    (context, url) => Container(
+                                      color: AppColors.primary.withOpacity(0.1),
+                                      child: const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    ),
+                                errorWidget:
+                                    (context, url, error) => Container(
+                                      color: AppColors.primary.withOpacity(0.1),
+                                      child: const Icon(
+                                        Icons.fitness_center,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Target: ${currentExercise.getMuscleGroupString()}',
-                                style: TextStyle(color: textSecondaryColor),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    currentExercise.name,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: textPrimaryColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Target: ${currentExercise.getMuscleGroupString()}',
+                                    style: TextStyle(color: textSecondaryColor),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
+
+                        // Display weight prediction if available
+                        if (_exercisePredictions.containsKey(
+                              currentExercise.id,
+                            ) &&
+                            _exercisePredictions[currentExercise.id] != null)
+                          _buildWeightPredictionCard(
+                            _exercisePredictions[currentExercise.id]!,
+                            textPrimaryColor,
+                            textSecondaryColor,
+                          ),
                       ],
                     ),
                   ),
@@ -345,41 +410,6 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
               ],
             ),
           ),
-
-          // Sets table header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                const SizedBox(width: 48, child: Text('SET')),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'WEIGHT (kg)',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: textPrimaryColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'REPS',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: textPrimaryColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 48),
-              ],
-            ),
-          ),
-
-          const Divider(),
 
           // Sets list
           Expanded(
@@ -411,24 +441,28 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
 
           // Navigation buttons
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               children: [
                 // Previous exercise button
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _currentExerciseIndex > 0
-                        ? _goToPreviousExercise
-                        : null,
+                    onPressed:
+                        _currentExerciseIndex > 0
+                            ? _goToPreviousExercise
+                            : null,
                     icon: const Icon(Icons.arrow_back),
                     label: const Text('Previous'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       side: BorderSide(
-                        color: _currentExerciseIndex > 0
-                            ? AppColors.primary
-                            : Colors.grey.shade400,
+                        color:
+                            _currentExerciseIndex > 0
+                                ? AppColors.primary
+                                : Colors.grey.shade400,
                       ),
                     ),
                   ),
@@ -437,18 +471,23 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                 // Next exercise button
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _currentExerciseIndex <
-                            widget.workout.exercises.length - 1
-                        ? _goToNextExercise
-                        : _finishWorkout,
-                    icon: Icon(_currentExerciseIndex <
-                            widget.workout.exercises.length - 1
-                        ? Icons.arrow_forward
-                        : Icons.check),
-                    label: Text(_currentExerciseIndex <
-                            widget.workout.exercises.length - 1
-                        ? 'Next'
-                        : 'Finish'),
+                    onPressed:
+                        _currentExerciseIndex <
+                                widget.workout.exercises.length - 1
+                            ? _goToNextExercise
+                            : _finishWorkout,
+                    icon: Icon(
+                      _currentExerciseIndex <
+                              widget.workout.exercises.length - 1
+                          ? Icons.arrow_forward
+                          : Icons.check,
+                    ),
+                    label: Text(
+                      _currentExerciseIndex <
+                              widget.workout.exercises.length - 1
+                          ? 'Next'
+                          : 'Finish',
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -466,83 +505,247 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   // Build a single set row with weight and reps input
   Widget _buildSetRow(WorkoutSet set, Color textColor) {
     final weightController = TextEditingController(
-        text: set.weight > 0 ? set.weight.toString() : '');
-    final repsController =
-        TextEditingController(text: set.reps > 0 ? set.reps.toString() : '');
+      text: set.weight > 0 ? set.weight.toString() : '',
+    );
+    final repsController = TextEditingController(
+      text: set.reps > 0 ? set.reps.toString() : '',
+    );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          // Set number
-          SizedBox(
-            width: 48,
-            child: Text(
-              'Set ${set.setNumber}',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: textColor,
-              ),
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Set number and completion status
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Set ${set.setNumber}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: textColor,
+                  ),
+                ),
+                // Complete set toggle
+                GestureDetector(
+                  onTap: () {
+                    _updateSet(set, isCompleted: !set.isCompleted);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          set.isCompleted
+                              ? AppColors.primary
+                              : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      set.isCompleted ? 'Completed' : 'Mark Complete',
+                      style: TextStyle(
+                        color:
+                            set.isCompleted
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 8),
+            const SizedBox(height: 16),
 
-          // Weight input
-          Expanded(
-            child: TextField(
-              controller: weightController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              style: TextStyle(color: textColor),
-              onChanged: (value) {
-                final weight = double.tryParse(value);
-                if (weight != null) {
-                  _updateSet(set, weight: weight);
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
+            // Weight input with +/- buttons
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'WEIGHT (kg)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    // Decrement button
+                    _buildWeightButton(
+                      icon: Icons.remove,
+                      onPressed: () {
+                        final currentWeight =
+                            double.tryParse(weightController.text) ?? 0;
+                        if (currentWeight >= 2.5) {
+                          final newWeight = (currentWeight - 2.5)
+                              .toStringAsFixed(1);
+                          weightController.text = newWeight;
+                          _updateSet(set, weight: currentWeight - 2.5);
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 12),
 
-          // Reps input
-          Expanded(
-            child: TextField(
-              controller: repsController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              style: TextStyle(color: textColor),
-              onChanged: (value) {
-                final reps = int.tryParse(value);
-                if (reps != null) {
-                  _updateSet(set, reps: reps);
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
+                    // Weight input field
+                    Expanded(
+                      child: TextField(
+                        controller: weightController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixText: 'kg',
+                        ),
+                        onChanged: (value) {
+                          final weight = double.tryParse(value);
+                          if (weight != null) {
+                            _updateSet(set, weight: weight);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
 
-          // Complete set checkbox
-          SizedBox(
-            width: 40,
-            child: IconButton(
-              icon: Icon(
-                set.isCompleted ? Icons.check_circle : Icons.circle_outlined,
-                color: set.isCompleted ? AppColors.primary : Colors.grey,
-              ),
-              onPressed: () {
-                _updateSet(set, isCompleted: !set.isCompleted);
-              },
+                    // Increment button
+                    _buildWeightButton(
+                      icon: Icons.add,
+                      onPressed: () {
+                        final currentWeight =
+                            double.tryParse(weightController.text) ?? 0;
+                        final newWeight = (currentWeight + 2.5).toStringAsFixed(
+                          1,
+                        );
+                        weightController.text = newWeight;
+                        _updateSet(set, weight: currentWeight + 2.5);
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+
+            // Reps input
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'REPS',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    // Decrement button
+                    _buildWeightButton(
+                      icon: Icons.remove,
+                      onPressed: () {
+                        final currentReps =
+                            int.tryParse(repsController.text) ?? 0;
+                        if (currentReps > 1) {
+                          repsController.text = (currentReps - 1).toString();
+                          _updateSet(set, reps: currentReps - 1);
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Reps input field
+                    Expanded(
+                      child: TextField(
+                        controller: repsController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          final reps = int.tryParse(value);
+                          if (reps != null) {
+                            _updateSet(set, reps: reps);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Increment button
+                    _buildWeightButton(
+                      icon: Icons.add,
+                      onPressed: () {
+                        final currentReps =
+                            int.tryParse(repsController.text) ?? 0;
+                        repsController.text = (currentReps + 1).toString();
+                        _updateSet(set, reps: currentReps + 1);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper to build weight increment/decrement buttons
+  Widget _buildWeightButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white),
+        onPressed: onPressed,
+        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+        padding: EdgeInsets.zero,
       ),
     );
   }
@@ -554,12 +757,14 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         final themeProvider = Provider.of<ThemeProvider>(context);
-        final cardBackgroundColor = themeProvider.isDarkMode
-            ? AppColors.darkCardBackground
-            : AppColors.lightCardBackground;
-        final textPrimaryColor = themeProvider.isDarkMode
-            ? AppColors.darkTextPrimary
-            : AppColors.lightTextPrimary;
+        final cardBackgroundColor =
+            themeProvider.isDarkMode
+                ? AppColors.darkCardBackground
+                : AppColors.lightCardBackground;
+        final textPrimaryColor =
+            themeProvider.isDarkMode
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary;
 
         return DraggableScrollableSheet(
           initialChildSize: 0.6,
@@ -569,8 +774,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
             return Container(
               decoration: BoxDecoration(
                 color: cardBackgroundColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
               child: Column(
                 children: [
@@ -578,8 +784,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.1),
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(20)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -616,19 +823,28 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                                   width: double.infinity,
                                   height: 200,
                                   fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(
-                                    height: 200,
-                                    color: AppColors.primary.withOpacity(0.1),
-                                    child: const Center(
-                                        child: CircularProgressIndicator()),
-                                  ),
-                                  errorWidget: (context, url, error) =>
-                                      Container(
-                                    height: 200,
-                                    color: AppColors.primary.withOpacity(0.1),
-                                    child: const Icon(Icons.fitness_center,
-                                        size: 48, color: AppColors.primary),
-                                  ),
+                                  placeholder:
+                                      (context, url) => Container(
+                                        height: 200,
+                                        color: AppColors.primary.withOpacity(
+                                          0.1,
+                                        ),
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      ),
+                                  errorWidget:
+                                      (context, url, error) => Container(
+                                        height: 200,
+                                        color: AppColors.primary.withOpacity(
+                                          0.1,
+                                        ),
+                                        child: const Icon(
+                                          Icons.fitness_center,
+                                          size: 48,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
                                 ),
                               ),
                             ),
@@ -662,14 +878,16 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            children: exercise.targetMuscles.map((muscle) {
-                              return Chip(
-                                label: Text(muscle),
-                                backgroundColor: AppColors.primary,
-                                labelStyle:
-                                    const TextStyle(color: Colors.white),
-                              );
-                            }).toList(),
+                            children:
+                                exercise.targetMuscles.map((muscle) {
+                                  return Chip(
+                                    label: Text(muscle),
+                                    backgroundColor: AppColors.primary,
+                                    labelStyle: const TextStyle(
+                                      color: Colors.white,
+                                    ),
+                                  );
+                                }).toList(),
                           ),
                         ],
                       ),
@@ -681,6 +899,186 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           },
         );
       },
+    );
+  }
+
+  Future<void> _fetchRecommendedWeight(Exercise exercise) async {
+    try {
+      final prediction = await _predictionService.getRecommendedWeight(
+        exercise.id,
+      );
+      if (mounted) {
+        setState(() {
+          _exercisePredictions[exercise.id] = prediction;
+        });
+      }
+    } catch (e) {
+      // Just store null for this exercise's prediction, which will
+      // cause the UI to fall back to default weights
+      if (mounted) {
+        setState(() {
+          _exercisePredictions[exercise.id] = null;
+        });
+      }
+      // Log error but don't fail the entire workout initialization
+      print('Error fetching weight prediction for ${exercise.name}: $e');
+    }
+  }
+
+  Widget _buildWeightPredictionCard(
+    WeightPrediction prediction,
+    Color textPrimaryColor,
+    Color textSecondaryColor,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0),
+      child: Card(
+        color: AppColors.primary.withOpacity(0.1),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'AI Recommendation',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.trending_up,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${(prediction.confidence! * 100).toStringAsFixed(0)}% confidence',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Suggested Weight',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textSecondaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            prediction.predictedWeight.toString(),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'kg',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: textSecondaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  if (prediction.suggestedReps != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Suggested Reps',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: textSecondaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children:
+                              prediction.suggestedReps!.map((reps) {
+                                return Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '$reps',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              if (prediction.message != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  prediction.message!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: textSecondaryColor,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

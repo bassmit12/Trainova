@@ -144,10 +144,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
 
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -170,6 +167,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
         id: widget.exercise?.id ?? 'new',
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
+        category: 'Strength', // Add default category
         sets: int.parse(_setsController.text.trim()),
         reps: int.parse(_repsController.text.trim()),
         imageUrl: _imageUrl ?? '',
@@ -240,24 +238,25 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   Future<void> _confirmDelete() async {
     final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Exercise'),
-        content: const Text(
-          'Are you sure you want to delete this exercise? This action cannot be undone. '
-          'Note: If this exercise is used in any workouts, those references will be removed.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Exercise'),
+            content: const Text(
+              'Are you sure you want to delete this exercise? This action cannot be undone. '
+              'Note: If this exercise is used in any workouts, those references will be removed.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('CANCEL'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('DELETE'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
     );
 
     if (shouldDelete == true) {
@@ -269,17 +268,20 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    final backgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkBackground
-        : AppColors.lightBackground;
-    final textPrimaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
+    final backgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkBackground
+            : AppColors.lightBackground;
+    final textPrimaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
 
     return Scaffold(
       appBar: AppBar(
-        title:
-            Text(widget.exercise == null ? 'Create Exercise' : 'Edit Exercise'),
+        title: Text(
+          widget.exercise == null ? 'Create Exercise' : 'Edit Exercise',
+        ),
         actions: [
           if (_isSaving || _isDeleting)
             const Padding(
@@ -300,9 +302,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
             TextButton(
               onPressed: _saveExercise,
               child: const Text('SAVE'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             ),
           ],
         ],
@@ -315,10 +315,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
             // Exercise Image
             const Text(
               'Exercise Image',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             ExerciseImagePicker(
@@ -374,9 +371,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Required';
@@ -395,9 +390,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Required';
@@ -413,70 +406,67 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
             // Difficulty Level
             const Text(
               'Difficulty Level',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children: _difficulties.map((difficulty) {
-                return ChoiceChip(
-                  label: Text(_capitalizeFirstLetter(difficulty)),
-                  selected: _selectedDifficulty == difficulty,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() {
-                        _selectedDifficulty = difficulty;
-                      });
-                    }
-                  },
-                  selectedColor: AppColors.primary.withOpacity(0.7),
-                  backgroundColor: Colors.grey.shade200,
-                  labelStyle: TextStyle(
-                    color: _selectedDifficulty == difficulty
-                        ? Colors.white
-                        : Colors.black,
-                  ),
-                );
-              }).toList(),
+              children:
+                  _difficulties.map((difficulty) {
+                    return ChoiceChip(
+                      label: Text(_capitalizeFirstLetter(difficulty)),
+                      selected: _selectedDifficulty == difficulty,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() {
+                            _selectedDifficulty = difficulty;
+                          });
+                        }
+                      },
+                      selectedColor: AppColors.primary.withOpacity(0.7),
+                      backgroundColor: Colors.grey.shade200,
+                      labelStyle: TextStyle(
+                        color:
+                            _selectedDifficulty == difficulty
+                                ? Colors.white
+                                : Colors.black,
+                      ),
+                    );
+                  }).toList(),
             ),
             const SizedBox(height: 24),
 
             // Target Muscle Groups
             const Text(
               'Target Muscle Groups',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _muscleGroups.map((muscle) {
-                final isSelected = _selectedMuscles.contains(muscle);
-                return FilterChip(
-                  label: Text(muscle),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedMuscles.add(muscle);
-                      } else {
-                        _selectedMuscles.remove(muscle);
-                      }
-                    });
-                  },
-                  selectedColor: AppColors.primary.withOpacity(0.7),
-                  backgroundColor: Colors.grey.shade200,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
-                  ),
-                );
-              }).toList(),
+              children:
+                  _muscleGroups.map((muscle) {
+                    final isSelected = _selectedMuscles.contains(muscle);
+                    return FilterChip(
+                      label: Text(muscle),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedMuscles.add(muscle);
+                          } else {
+                            _selectedMuscles.remove(muscle);
+                          }
+                        });
+                      },
+                      selectedColor: AppColors.primary.withOpacity(0.7),
+                      backgroundColor: Colors.grey.shade200,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black,
+                      ),
+                    );
+                  }).toList(),
             ),
             const SizedBox(height: 24),
 
@@ -505,13 +495,17 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
-                  : const Text('SAVE EXERCISE'),
+              child:
+                  _isSaving
+                      ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                      : const Text('SAVE EXERCISE'),
             ),
             const SizedBox(height: 24),
           ],

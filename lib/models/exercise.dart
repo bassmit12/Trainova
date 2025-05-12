@@ -3,38 +3,110 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Exercise {
-  final String id;
+  final String id; // Changed to String to match how it's used in the codebase
   final String name;
   final String description;
+  final String category;
+  final String imageUrl;
+  final String? muscleGroup;
+  final bool isCustom;
   final int sets;
   final int reps;
-  final String imageUrl;
   final List<String> targetMuscles;
-  final String difficulty; // "beginner", "intermediate", "advanced"
+  final String difficulty;
   final bool isPublic;
   final String? createdBy;
 
   Exercise({
     required this.id,
     required this.name,
-    required this.description,
-    required this.sets,
-    required this.reps,
-    required this.imageUrl,
-    required this.targetMuscles,
-    required this.difficulty,
-    this.isPublic = false,
+    this.description = '',
+    required this.category,
+    this.imageUrl = '',
+    this.muscleGroup,
+    this.isCustom = false,
+    this.sets = 3,
+    this.reps = 10,
+    this.targetMuscles = const [],
+    this.difficulty = 'Beginner',
+    this.isPublic = true,
     this.createdBy,
   });
 
-  // Method to create a copy of the exercise with modified properties
+  factory Exercise.fromJson(Map<String, dynamic> json) {
+    return Exercise(
+      id: json['id'].toString(),
+      name: json['name'] as String,
+      description: json['description'] as String? ?? '',
+      category: json['category'] as String,
+      imageUrl: json['image_url'] as String? ?? '',
+      muscleGroup: json['muscle_group'] as String?,
+      isCustom: json['is_custom'] as bool? ?? false,
+      sets: json['sets'] as int? ?? 3,
+      reps: json['reps'] as int? ?? 10,
+      targetMuscles:
+          json['target_muscles'] != null
+              ? List<String>.from(json['target_muscles'])
+              : [],
+      difficulty: json['difficulty'] as String? ?? 'Beginner',
+      isPublic: json['is_public'] as bool? ?? true,
+      createdBy: json['created_by'] as String?,
+    );
+  }
+
+  factory Exercise.fromMap(Map<String, dynamic> map) {
+    return Exercise(
+      id: map['id'].toString(),
+      name: map['name'] as String,
+      description: map['description'] as String? ?? '',
+      category: map['category'] as String? ?? 'Strength',
+      imageUrl: map['image_url'] as String? ?? '',
+      muscleGroup: map['muscle_group'] as String?,
+      isCustom: map['is_custom'] as bool? ?? false,
+      sets: map['sets'] as int? ?? 3,
+      reps: map['reps'] as int? ?? 10,
+      targetMuscles:
+          map['target_muscles'] != null
+              ? List<String>.from(map['target_muscles'])
+              : [],
+      difficulty: map['difficulty'] as String? ?? 'Beginner',
+      isPublic: map['is_public'] as bool? ?? true,
+      createdBy: map['created_by'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'category': category,
+      'image_url': imageUrl,
+      'muscle_group': muscleGroup,
+      'is_custom': isCustom,
+      'sets': sets,
+      'reps': reps,
+      'target_muscles': targetMuscles,
+      'difficulty': difficulty,
+      'is_public': isPublic,
+      'created_by': createdBy,
+    };
+  }
+
+  Map<String, dynamic> toMap() {
+    return toJson();
+  }
+
   Exercise copyWith({
     String? id,
     String? name,
     String? description,
+    String? category,
+    String? imageUrl,
+    String? muscleGroup,
+    bool? isCustom,
     int? sets,
     int? reps,
-    String? imageUrl,
     List<String>? targetMuscles,
     String? difficulty,
     bool? isPublic,
@@ -44,9 +116,12 @@ class Exercise {
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
+      category: category ?? this.category,
+      imageUrl: imageUrl ?? this.imageUrl,
+      muscleGroup: muscleGroup ?? this.muscleGroup,
+      isCustom: isCustom ?? this.isCustom,
       sets: sets ?? this.sets,
       reps: reps ?? this.reps,
-      imageUrl: imageUrl ?? this.imageUrl,
       targetMuscles: targetMuscles ?? this.targetMuscles,
       difficulty: difficulty ?? this.difficulty,
       isPublic: isPublic ?? this.isPublic,
@@ -54,244 +129,137 @@ class Exercise {
     );
   }
 
-  // Factory to convert from Supabase response data
-  factory Exercise.fromMap(Map<String, dynamic> map) {
-    return Exercise(
-      id: map['id'],
-      name: map['name'],
-      description: map['description'],
-      sets: map['sets'],
-      reps: map['reps'],
-      imageUrl: map['image_url'],
-      targetMuscles: List<String>.from(map['target_muscles'] ?? []),
-      difficulty: map['difficulty'],
-      isPublic: map['is_public'] ?? false,
-      createdBy: map['created_by'],
-    );
-  }
-
-  // Convert to Map for Supabase
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'description': description,
-      'sets': sets,
-      'reps': reps,
-      'image_url': imageUrl,
-      'target_muscles': targetMuscles,
-      'difficulty': difficulty,
-      'is_public': isPublic,
-      'created_by': createdBy,
-    };
-  }
-
-  // Method to get alternative exercises based on equipment availability
-  static Future<List<Exercise>> getAlternativeExercises(
-    Exercise exercise,
-  ) async {
-    final supabase = Supabase.instance.client;
-
-    // Find exercises targeting similar muscle groups
-    final response = await supabase
-        .from('exercises')
-        .select()
-        .neq('id', exercise.id) // Not the same exercise
-        .overlaps(
-          'target_muscles',
-          exercise.targetMuscles,
-        ) // Similar muscle groups
-        .or(
-          'is_public.eq.true,created_by.eq.${supabase.auth.currentUser?.id}',
-        ) // Public or owned by user
-        .order('created_at');
-
-    if (response.isEmpty) return [];
-
-    final alternatives =
-        response.map((data) => Exercise.fromMap(data)).toList();
-
-    // Sort by number of matching muscle targets (most similar first)
-    alternatives.sort((a, b) {
-      final aMatches =
-          a.targetMuscles
-              .where((m) => exercise.targetMuscles.contains(m))
-              .length;
-      final bMatches =
-          b.targetMuscles
-              .where((m) => exercise.targetMuscles.contains(m))
-              .length;
-      return bMatches.compareTo(aMatches);
-    });
-
-    return alternatives;
-  }
-
-  // Method to get muscle groups targeted as a string
   String getMuscleGroupString() {
-    return targetMuscles.join(', ');
+    if (targetMuscles.isNotEmpty) {
+      return targetMuscles.join(', ');
+    }
+    return muscleGroup ?? '';
   }
 
-  // Fetch all exercises (public + user's own)
   static Future<List<Exercise>> fetchExercises() async {
     try {
-      final supabase = Supabase.instance.client;
-      final userId = supabase.auth.currentUser?.id;
+      final client = Supabase.instance.client;
+      final response = await client.from('exercises').select();
 
-      final response = await supabase
-          .from('exercises')
-          .select()
-          .or('is_public.eq.true,created_by.eq.$userId')
-          .order('created_at');
-
-      return response.map((data) => Exercise.fromMap(data)).toList();
+      final data = response as List<dynamic>;
+      return data.map((item) => Exercise.fromMap(item)).toList();
     } catch (e) {
-      debugPrint('Error fetching exercises: $e');
+      print('Error fetching exercises: $e');
       return [];
     }
   }
 
-  // Fetch an exercise by its ID
-  static Future<Exercise?> fetchExerciseById(String id) async {
-    try {
-      final supabase = Supabase.instance.client;
-
-      final response =
-          await supabase.from('exercises').select().eq('id', id).single();
-
-      return Exercise.fromMap(response);
-    } catch (e) {
-      debugPrint('Error fetching exercise by ID: $e');
-      return null;
-    }
-  }
-
-  // Fetch multiple exercises by their IDs
   static Future<Map<String, Exercise>> fetchExercisesByIds(
     List<String> ids,
   ) async {
+    if (ids.isEmpty) return {};
+
     try {
-      if (ids.isEmpty) {
-        return {};
-      }
+      final client = Supabase.instance.client;
+      final response = await client
+          .from('exercises')
+          .select()
+          .inFilter('id', ids);
 
-      final supabase = Supabase.instance.client;
+      final data = response as List<dynamic>;
+      final exercises = data.map((item) => Exercise.fromMap(item)).toList();
 
-      // Using .eq with an 'or' clause for each ID as a workaround
-      List<Map<String, dynamic>> response = [];
-
-      // We need to query one by one since there's an issue with the .in_ method
-      for (String id in ids) {
-        final result = await supabase.from('exercises').select().eq('id', id);
-
-        if (result.isNotEmpty) {
-          response.addAll(result);
-        }
-      }
-
-      // Create a map of exercise IDs to Exercise objects
-      final Map<String, Exercise> exercisesMap = {};
-      for (var data in response) {
-        try {
-          final exercise = Exercise.fromMap(data);
-          exercisesMap[exercise.id] = exercise;
-        } catch (e) {
-          debugPrint('Error parsing exercise data: $e');
-        }
-      }
-
-      return exercisesMap;
+      return {for (var exercise in exercises) exercise.id: exercise};
     } catch (e) {
-      debugPrint('Error fetching exercises by IDs: $e');
+      print('Error fetching exercises by ids: $e');
       return {};
     }
   }
 
-  // Create a new exercise
   static Future<Exercise?> createExercise(Exercise exercise) async {
     try {
-      final supabase = Supabase.instance.client;
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return null;
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
 
-      // Create exercise with current user as creator
       final exerciseData = exercise.toMap();
-      exerciseData['created_by'] = userId;
+
+      exerciseData.remove('id');
+
+      if (userId != null) {
+        exerciseData['created_by'] = userId;
+      }
 
       final response =
-          await supabase
-              .from('exercises')
-              .insert(exerciseData)
-              .select()
-              .single();
+          await client.from('exercises').insert(exerciseData).select();
 
-      return Exercise.fromMap(response);
+      if (response != null && (response as List).isNotEmpty) {
+        return Exercise.fromMap(response[0]);
+      }
+
+      return null;
     } catch (e) {
-      debugPrint('Error creating exercise: $e');
+      print('Error creating exercise: $e');
       return null;
     }
   }
 
-  // Update an exercise
-  Future<Exercise?> updateExercise() async {
+  static Future<bool> deleteExercise(String id) async {
     try {
-      final supabase = Supabase.instance.client;
-      final userId = supabase.auth.currentUser?.id;
+      final client = Supabase.instance.client;
+      await client.from('exercises').delete().eq('id', id);
 
-      // Get admin mode status from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final isAdmin = prefs.getBool('admin_mode') ?? false;
-
-      // Verify ownership or admin status
-      if (createdBy != userId && !isAdmin) {
-        throw Exception('You do not own this exercise');
-      }
-
-      final response =
-          await supabase
-              .from('exercises')
-              .update(toMap())
-              .eq('id', id)
-              .select()
-              .single();
-
-      return Exercise.fromMap(response);
-    } catch (e) {
-      debugPrint('Error updating exercise: $e');
-      return null;
-    }
-  }
-
-  // Delete an exercise
-  static Future<bool> deleteExercise(String exerciseId) async {
-    try {
-      final supabase = Supabase.instance.client;
-      final userId = supabase.auth.currentUser?.id;
-
-      // Get admin mode status from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final isAdmin = prefs.getBool('admin_mode') ?? false;
-
-      // First check if the current user is the owner of this exercise
-      final exercise =
-          await supabase
-              .from('exercises')
-              .select('created_by')
-              .eq('id', exerciseId)
-              .single();
-
-      final exerciseCreator = exercise['created_by'];
-
-      // Verify ownership or admin status
-      if (exerciseCreator != userId && !isAdmin) {
-        throw Exception('You do not have permission to delete this exercise');
-      }
-
-      // Delete exercise (it will be removed from workouts via database cascade)
-      await supabase.from('exercises').delete().eq('id', exerciseId);
       return true;
     } catch (e) {
-      debugPrint('Error deleting exercise: $e');
+      print('Error deleting exercise: $e');
       return false;
     }
+  }
+
+  static Future<List<Exercise>> getAlternativeExercises(
+    Exercise exercise,
+  ) async {
+    try {
+      final client = Supabase.instance.client;
+      final response = await client
+          .from('exercises')
+          .select()
+          .neq('id', exercise.id);
+
+      final data = response as List<dynamic>;
+      final allExercises = data.map((item) => Exercise.fromMap(item)).toList();
+
+      return allExercises.where((e) {
+        return e.targetMuscles.any(
+          (muscle) => exercise.targetMuscles.contains(muscle),
+        );
+      }).toList();
+    } catch (e) {
+      print('Error fetching alternative exercises: $e');
+      return [];
+    }
+  }
+
+  Future<Exercise?> updateExercise() async {
+    try {
+      final client = Supabase.instance.client;
+
+      final exerciseData = toMap();
+
+      final response =
+          await client
+              .from('exercises')
+              .update(exerciseData)
+              .eq('id', id)
+              .select();
+
+      if (response != null && (response as List).isNotEmpty) {
+        return Exercise.fromMap(response[0]);
+      }
+
+      return null;
+    } catch (e) {
+      print('Error updating exercise: $e');
+      return null;
+    }
+  }
+
+  @override
+  String toString() {
+    return 'Exercise{id: $id, name: $name, category: $category, sets: $sets, reps: $reps}';
   }
 }

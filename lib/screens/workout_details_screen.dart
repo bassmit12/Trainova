@@ -12,6 +12,7 @@ import '../services/workout_session_service.dart';
 import 'workout_session_screen.dart';
 import 'create_workout_screen.dart';
 import '../widgets/message_overlay.dart';
+import 'exercise_detail_screen.dart';
 
 class WorkoutDetailsScreen extends StatefulWidget {
   final Workout workout;
@@ -76,15 +77,16 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
     });
   }
 
-  void _updateExerciseSetsReps(int index, {int? sets, int? reps}) {
+  void _updateExerciseSetsReps(int index, {int? sets}) {
     setState(() {
       final exercise = _currentExercises[index];
       _currentExercises[index] = Exercise(
         id: exercise.id,
         name: exercise.name,
         description: exercise.description,
+        category: exercise.category,
         sets: sets ?? exercise.sets,
-        reps: reps ?? exercise.reps,
+        reps: exercise.reps, // Keep the existing reps value
         imageUrl: exercise.imageUrl,
         targetMuscles: exercise.targetMuscles,
         difficulty: exercise.difficulty,
@@ -1033,197 +1035,257 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
     required Color textPrimaryColor,
     required Color textSecondaryColor,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: cardBackgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Exercise header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Exercise number
-                Container(
-                  width: 28,
-                  height: 28,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Exercise info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        exercise.name,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: textPrimaryColor,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildNumberControl(
-                            exercise.sets,
-                            (newSets) =>
-                                _updateExerciseSetsReps(index, sets: newSets),
-                            min: 1,
-                            max: 10,
-                          ),
-                          const SizedBox(width: 16),
-                          _buildNumberControl(
-                            exercise.reps,
-                            (newReps) =>
-                                _updateExerciseSetsReps(index, reps: newReps),
-                            min: 1,
-                            max: 50,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children:
-                              exercise.targetMuscles.map((muscle) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Text(
-                                    muscle,
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Swap button
-                GestureDetector(
-                  onTap: () => _showSwapExerciseDialog(index, exercise),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
+    return GestureDetector(
+      onTap: () => _navigateToExerciseDetails(exercise),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: cardBackgroundColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Exercise header
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Exercise number
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.swap_horiz,
-                      color: AppColors.primary,
-                      size: 20,
+                    child: Text(
+                      '${index + 1}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                  const SizedBox(width: 16),
 
-          // Exercise image
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(16),
-              bottomRight: Radius.circular(16),
-            ),
-            child: CachedNetworkImage(
-              imageUrl: exercise.imageUrl,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              placeholder:
-                  (context, url) => Container(
-                    height: 180,
-                    color: AppColors.primary.withOpacity(0.1),
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-              errorWidget:
-                  (context, url, error) => Container(
-                    height: 180,
-                    color: AppColors.primary.withOpacity(0.1),
+                  // Exercise info
+                  Expanded(
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.fitness_center,
-                          color: AppColors.primary,
-                          size: 40,
-                        ),
-                        const SizedBox(height: 8),
                         Text(
                           exercise.name,
-                          style: TextStyle(color: textSecondaryColor),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: textPrimaryColor,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _buildNumberControl(
+                              exercise.sets,
+                              (newSets) =>
+                                  _updateExerciseSetsReps(index, sets: newSets),
+                              min: 1,
+                              max: 10,
+                            ),
+                            const SizedBox(width: 16),
+                            Text(
+                              "Reps: AI determined",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontStyle: FontStyle.italic,
+                                color: textSecondaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children:
+                                exercise.targetMuscles.map((muscle) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Text(
+                                      muscle,
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
                         ),
                       ],
                     ),
                   ),
-            ),
-          ),
 
-          // Exercise description (expandable)
-          Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              title: Text(
-                'Instructions',
-                style: TextStyle(
-                  color: textPrimaryColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                  // Swap button
+                  GestureDetector(
+                    onTap: () => _showSwapExerciseDialog(index, exercise),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.swap_horiz,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            ),
+
+            // Exercise image
+            Stack(
               children: [
-                Text(
-                  exercise.description,
-                  style: TextStyle(color: textSecondaryColor, height: 1.5),
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: exercise.imageUrl,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    placeholder:
+                        (context, url) => Container(
+                          height: 180,
+                          color: AppColors.primary.withOpacity(0.1),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                    errorWidget:
+                        (context, url, error) => Container(
+                          height: 180,
+                          color: AppColors.primary.withOpacity(0.1),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.fitness_center,
+                                color: AppColors.primary,
+                                size: 40,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                exercise.name,
+                                style: TextStyle(color: textSecondaryColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                  ),
+                ),
+                Positioned(
+                  right: 10,
+                  bottom: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.info_outline, color: Colors.white, size: 16),
+                        SizedBox(width: 4),
+                        Text(
+                          'View Details',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+
+            // Exercise description (expandable)
+            Theme(
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                title: Text(
+                  'Instructions',
+                  style: TextStyle(
+                    color: textPrimaryColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                children: [
+                  Text(
+                    exercise.description,
+                    style: TextStyle(color: textSecondaryColor, height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Navigate to exercise details screen
+  void _navigateToExerciseDetails(Exercise exercise) {
+    // Get current user ID from Supabase
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '1';
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => ExerciseDetailScreen(
+              exercise: exercise,
+              userId: int.parse(
+                currentUserId.split('-')[0],
+              ), // Use first part of UUID as numeric ID
+            ),
       ),
     );
   }

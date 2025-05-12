@@ -10,6 +10,7 @@ import '../utils/app_colors.dart';
 import '../models/user.dart';
 import '../widgets/message_overlay.dart';
 import 'edit_profile_screen.dart';
+import 'neural_network_diagnostic_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -25,13 +26,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _tipsAndUpdatesEnabled = true;
   String _selectedLanguage = 'English';
   String _selectedUnits = 'Metric';
-  TimeOfDay _notificationTime =
-      const TimeOfDay(hour: 8, minute: 0); // Default 8:00 AM
+  TimeOfDay _notificationTime = const TimeOfDay(
+    hour: 8,
+    minute: 0,
+  ); // Default 8:00 AM
   final List<String> _languages = ['English', 'Spanish', 'French', 'German'];
   final List<String> _measurementSystems = ['Metric', 'Imperial'];
 
   Future<void> _showConfirmDialog(
-      String title, String content, Function onConfirm) async {
+    String title,
+    String content,
+    Function onConfirm,
+  ) async {
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -62,10 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'Are you sure you want to reset all app data? This action cannot be undone.',
       () {
         // Implement reset logic here
-        MessageOverlay.showSuccess(
-          context,
-          message: 'App data has been reset',
-        );
+        MessageOverlay.showSuccess(context, message: 'App data has been reset');
       },
     );
   }
@@ -79,8 +82,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         try {
           await authService.signOut();
           if (mounted) {
-            Navigator.of(context)
-                .pushNamedAndRemoveUntil('/', (route) => false);
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/', (route) => false);
             MessageOverlay.showInfo(
               context,
               message: 'Your account has been deleted',
@@ -105,9 +109,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final user = authService.currentUser;
 
     return Scaffold(
-      backgroundColor: themeProvider.isDarkMode
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
+      backgroundColor:
+          themeProvider.isDarkMode
+              ? AppColors.darkBackground
+              : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Settings'),
         centerTitle: true,
@@ -125,24 +130,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Account Section
               _buildSectionHeader('Account'),
               _buildProfileTile(user),
-              _buildActionTile(
-                'Edit Profile',
-                Icons.edit,
-                () async {
-                  final result = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(
-                      builder: (context) => const EditProfileScreen(),
-                    ),
-                  );
+              _buildActionTile('Edit Profile', Icons.edit, () async {
+                final result = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (context) => const EditProfileScreen(),
+                  ),
+                );
 
-                  if (result == true) {
-                    if (mounted) {
-                      await authService.getCurrentUserProfile(
-                          forceRefresh: true);
-                    }
+                if (result == true) {
+                  if (mounted) {
+                    await authService.getCurrentUserProfile(forceRefresh: true);
                   }
-                },
-              ),
+                }
+              }),
 
               // Appearance Section
               _buildSectionHeader('Appearance'),
@@ -216,13 +216,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _tipsAndUpdatesEnabled = false;
                     }
                   });
-                  final String message = value
-                      ? 'Notifications enabled'
-                      : 'Notifications disabled';
-                  MessageOverlay.showInfo(
-                    context,
-                    message: message,
-                  );
+                  final String message =
+                      value
+                          ? 'Notifications enabled'
+                          : 'Notifications disabled';
+                  MessageOverlay.showInfo(context, message: message);
                 },
               ),
 
@@ -237,13 +235,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     setState(() {
                       _workoutRemindersEnabled = value;
                     });
-                    final String message = value
-                        ? 'Workout reminders enabled'
-                        : 'Workout reminders disabled';
-                    MessageOverlay.showInfo(
-                      context,
-                      message: message,
-                    );
+                    final String message =
+                        value
+                            ? 'Workout reminders enabled'
+                            : 'Workout reminders disabled';
+                    MessageOverlay.showInfo(context, message: message);
                   },
                 ),
                 _buildSwitchTile(
@@ -255,13 +251,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     setState(() {
                       _achievementNotificationsEnabled = value;
                     });
-                    final String message = value
-                        ? 'Achievement notifications enabled'
-                        : 'Achievement notifications disabled';
-                    MessageOverlay.showInfo(
-                      context,
-                      message: message,
-                    );
+                    final String message =
+                        value
+                            ? 'Achievement notifications enabled'
+                            : 'Achievement notifications disabled';
+                    MessageOverlay.showInfo(context, message: message);
                   },
                 ),
                 _buildSwitchTile(
@@ -273,13 +267,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     setState(() {
                       _tipsAndUpdatesEnabled = value;
                     });
-                    final String message = value
-                        ? 'Tips & updates enabled'
-                        : 'Tips & updates disabled';
-                    MessageOverlay.showInfo(
-                      context,
-                      message: message,
-                    );
+                    final String message =
+                        value
+                            ? 'Tips & updates enabled'
+                            : 'Tips & updates disabled';
+                    MessageOverlay.showInfo(context, message: message);
                   },
                 ),
                 _buildActionTile(
@@ -302,69 +294,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // Data & Privacy Section
               _buildSectionHeader('Data & Privacy'),
-              _buildActionTile(
-                'Privacy Policy',
-                Icons.privacy_tip,
-                () {
-                  MessageOverlay.showInfo(
-                    context,
-                    message: 'Privacy Policy - Coming soon',
-                  );
-                },
-              ),
-              _buildActionTile(
-                'Terms of Service',
-                Icons.description,
-                () {
-                  MessageOverlay.showInfo(
-                    context,
-                    message: 'Terms of Service - Coming soon',
-                  );
-                },
-              ),
-              _buildActionTile(
-                'Export Your Data',
-                Icons.file_download,
-                () {
-                  MessageOverlay.showInfo(
-                    context,
-                    message: 'Data export - Coming soon',
-                  );
-                },
-              ),
+              _buildActionTile('Privacy Policy', Icons.privacy_tip, () {
+                MessageOverlay.showInfo(
+                  context,
+                  message: 'Privacy Policy - Coming soon',
+                );
+              }),
+              _buildActionTile('Terms of Service', Icons.description, () {
+                MessageOverlay.showInfo(
+                  context,
+                  message: 'Terms of Service - Coming soon',
+                );
+              }),
+              _buildActionTile('Export Your Data', Icons.file_download, () {
+                MessageOverlay.showInfo(
+                  context,
+                  message: 'Data export - Coming soon',
+                );
+              }),
 
               // Support Section
               _buildSectionHeader('Support'),
-              _buildActionTile(
-                'Help Center',
-                Icons.help,
-                () {
-                  MessageOverlay.showInfo(
-                    context,
-                    message: 'Help Center - Coming soon',
-                  );
-                },
-              ),
-              _buildActionTile(
-                'Contact Support',
-                Icons.support_agent,
-                () {
-                  MessageOverlay.showInfo(
-                    context,
-                    message: 'Support - Coming soon',
-                  );
-                },
-              ),
-              _buildActionTile(
-                'Report a Bug',
-                Icons.bug_report,
-                () {
-                  MessageOverlay.showInfo(
-                    context,
-                    message: 'Bug reporting - Coming soon',
-                  );
-                },
-              ),
+              _buildActionTile('Help Center', Icons.help, () {
+                MessageOverlay.showInfo(
+                  context,
+                  message: 'Help Center - Coming soon',
+                );
+              }),
+              _buildActionTile('Contact Support', Icons.support_agent, () {
+                MessageOverlay.showInfo(
+                  context,
+                  message: 'Support - Coming soon',
+                );
+              }),
+              _buildActionTile('Report a Bug', Icons.bug_report, () {
+                MessageOverlay.showInfo(
+                  context,
+                  message: 'Bug reporting - Coming soon',
+                );
+              }),
 
               // About Section
               _buildSectionHeader('About'),
@@ -372,13 +340,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'Trainova',
                 Icons.info,
                 () {
-                  MessageOverlay.showInfo(
-                    context,
-                    message: 'Trainova v1.0.0',
-                  );
+                  MessageOverlay.showInfo(context, message: 'Trainova v1.0.0');
                 },
                 subtitle: 'v1.0.0',
                 showChevron: false,
+              ),
+
+              // Developer Section
+              _buildSectionHeader('Developer'),
+              _buildActionTile(
+                'Neural Network Diagnostics',
+                Icons.analytics_outlined,
+                () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder:
+                          (context) => const NeuralNetworkDiagnosticScreen(),
+                    ),
+                  );
+                },
+                subtitle: 'Check the neural network connection status',
               ),
 
               // Danger Zone Section
@@ -404,8 +385,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onPressed: () async {
                     await authService.signOut();
                     if (mounted) {
-                      Navigator.of(context)
-                          .pushNamedAndRemoveUntil('/', (route) => false);
+                      Navigator.of(
+                        context,
+                      ).pushNamedAndRemoveUntil('/', (route) => false);
                     }
                   },
                   icon: const Icon(Icons.logout),
@@ -441,17 +423,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: themeProvider.isDarkMode
-                  ? AppColors.darkTextPrimary
-                  : AppColors.lightTextPrimary,
+              color:
+                  themeProvider.isDarkMode
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Container(
             height: 1,
-            color: themeProvider.isDarkMode
-                ? Colors.grey.shade700
-                : Colors.grey.shade200,
+            color:
+                themeProvider.isDarkMode
+                    ? Colors.grey.shade700
+                    : Colors.grey.shade200,
           ),
         ],
       ),
@@ -480,10 +464,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SizedBox(height: 4),
           Text(
             'Actions here are irreversible',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.red,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.red),
           ),
         ],
       ),
@@ -513,23 +494,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: user?.avatarUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: user!.avatarUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                            const CircularProgressIndicator(strokeWidth: 2),
-                        errorWidget: (context, url, error) => const Icon(
+                child:
+                    user?.avatarUrl != null
+                        ? CachedNetworkImage(
+                          imageUrl: user!.avatarUrl!,
+                          fit: BoxFit.cover,
+                          placeholder:
+                              (context, url) => const CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                          errorWidget:
+                              (context, url, error) => const Icon(
+                                Icons.person,
+                                size: 25,
+                                color: AppColors.primary,
+                              ),
+                        )
+                        : const Icon(
                           Icons.person,
                           size: 25,
                           color: AppColors.primary,
                         ),
-                      )
-                    : const Icon(
-                        Icons.person,
-                        size: 25,
-                        color: AppColors.primary,
-                      ),
               ),
             ),
             const SizedBox(width: 16),
@@ -586,16 +571,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        subtitle: subtitle != null
-            ? Text(
-                subtitle,
-                style: TextStyle(color: textSecondaryColor),
-              )
-            : null,
-        trailing: showChevron
-            ? Icon(Icons.chevron_right,
-                color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600)
-            : null,
+        subtitle:
+            subtitle != null
+                ? Text(subtitle, style: TextStyle(color: textSecondaryColor))
+                : null,
+        trailing:
+            showChevron
+                ? Icon(
+                  Icons.chevron_right,
+                  color:
+                      isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                )
+                : null,
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -628,10 +615,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             color: textPrimaryColor,
           ),
         ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(color: textSecondaryColor),
-        ),
+        subtitle: Text(subtitle, style: TextStyle(color: textSecondaryColor)),
         value: value,
         onChanged: onChanged,
         activeColor: AppColors.primary,
@@ -678,10 +662,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: textSecondaryColor,
-                    ),
+                    style: TextStyle(fontSize: 14, color: textSecondaryColor),
                   ),
                 ],
               ),
@@ -692,21 +673,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: DropdownButton<String>(
                 value: value,
-                icon: Icon(Icons.arrow_drop_down,
-                    color: isDarkMode ? Colors.white60 : Colors.grey.shade700),
+                icon: Icon(
+                  Icons.arrow_drop_down,
+                  color: isDarkMode ? Colors.white60 : Colors.grey.shade700,
+                ),
                 elevation: 16,
                 style: TextStyle(color: textPrimaryColor),
-                underline: Container(
-                  height: 0,
-                  color: Colors.transparent,
-                ),
+                underline: Container(height: 0, color: Colors.transparent),
                 onChanged: onChanged,
-                items: items.map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+                items:
+                    items.map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
               ),
             ),
           ],
