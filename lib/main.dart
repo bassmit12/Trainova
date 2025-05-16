@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
 import 'config/app_config.dart';
 import 'config/env_config.dart';
+import 'services/config_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/workout_screen.dart';
@@ -28,6 +29,9 @@ void main() async {
 
   // Load environment variables
   await EnvConfig.initialize();
+  
+  // Initialize Config Service
+  await ConfigService().initialize();
 
   // Initialize Supabase
   await Supabase.initialize(
@@ -51,6 +55,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService(supabase)),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ConfigService()),
         ChangeNotifierProvider(
           create: (_) => WorkoutSessionService()..initialize(),
         ),

@@ -7,6 +7,7 @@ import '../models/weight_prediction.dart';
 import '../models/workout_set.dart';
 import '../models/exercise.dart';
 import '../config/api_config.dart';
+import '../config/env_config.dart';
 import '../services/workout_history_service.dart';
 
 class ProgressiveOverloadService {
@@ -14,8 +15,8 @@ class ProgressiveOverloadService {
   final WorkoutHistoryService _historyService = WorkoutHistoryService();
 
   ProgressiveOverloadService({
-    this.baseUrl = ApiConfig.progressiveOverloadApiUrl,
-  });
+    String? apiUrl,
+  }) : baseUrl = apiUrl ?? EnvConfig.neuralNetworkApiUrl;
 
   /// Fetches a weight prediction for the next workout
   Future<WeightPrediction> predictNextWeight({

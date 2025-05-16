@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/progressive_overload_service.dart';
 import '../utils/app_colors.dart';
 import '../config/api_config.dart';
+import '../config/env_config.dart';
+import '../services/config_service.dart';
 
 class NeuralNetworkDiagnosticScreen extends StatefulWidget {
   const NeuralNetworkDiagnosticScreen({Key? key}) : super(key: key);
@@ -13,7 +16,7 @@ class NeuralNetworkDiagnosticScreen extends StatefulWidget {
 
 class _NeuralNetworkDiagnosticScreenState
     extends State<NeuralNetworkDiagnosticScreen> {
-  final ProgressiveOverloadService _service = ProgressiveOverloadService();
+  late ProgressiveOverloadService _service;
   bool _isLoading = false;
   String _apiStatus = 'Not tested';
   String _exercisesStatus = 'Not tested';
@@ -21,6 +24,41 @@ class _NeuralNetworkDiagnosticScreenState
   String _modelInfoStatus = 'Not tested';
   Map<String, dynamic>? _modelInfo;
   List<String>? _exercises;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeService();
+    // Listen for changes to the API URL
+    final configService = Provider.of<ConfigService>(context, listen: false);
+    configService.addListener(_onConfigChanged);
+  }
+  
+  @override
+  void dispose() {
+    // Remove listener when widget is disposed
+    final configService = Provider.of<ConfigService>(context, listen: false);
+    configService.removeListener(_onConfigChanged);
+    super.dispose();
+  }
+  
+  void _initializeService() {
+    _service = ProgressiveOverloadService();
+  }
+  
+  void _onConfigChanged() {
+    setState(() {
+      // Reinitialize the service with the updated URL
+      _initializeService();
+      // Reset test statuses
+      _apiStatus = 'Not tested';
+      _exercisesStatus = 'Not tested';
+      _predictionStatus = 'Not tested';
+      _modelInfoStatus = 'Not tested';
+      _modelInfo = null;
+      _exercises = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +79,7 @@ class _NeuralNetworkDiagnosticScreenState
             _buildInfoCard(
               title: 'API Endpoint Configuration',
               content:
-                  'Progressive Overload API URL: ${ApiConfig.progressiveOverloadApiUrl}',
+                  'Progressive Overload API URL: ${EnvConfig.neuralNetworkApiUrl}',
               icon: Icons.settings,
               color: Colors.blue,
             ),
@@ -198,7 +236,7 @@ class _NeuralNetworkDiagnosticScreenState
     // Test basic API connection
     try {
       final url = Uri.parse(
-        '${ApiConfig.progressiveOverloadApiUrl}/api/health',
+        '${EnvConfig.neuralNetworkApiUrl}/api/health',
       );
       final response = await Future.delayed(
         const Duration(milliseconds: 500),

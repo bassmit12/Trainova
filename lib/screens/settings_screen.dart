@@ -3,12 +3,15 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart' as dotenv;
 
 import '../providers/theme_provider.dart';
 import '../services/auth_service.dart';
+import '../services/config_service.dart';
 import '../utils/app_colors.dart';
 import '../models/user.dart';
 import '../widgets/message_overlay.dart';
+import '../config/env_config.dart';
 import 'edit_profile_screen.dart';
 import 'neural_network_diagnostic_screen.dart';
 
@@ -32,6 +35,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ); // Default 8:00 AM
   final List<String> _languages = ['English', 'Spanish', 'French', 'German'];
   final List<String> _measurementSystems = ['Metric', 'Imperial'];
+  TextEditingController _apiUrlController = TextEditingController();
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadApiUrl();
+  }
+  
+  Future<void> _loadApiUrl() async {
+    final configService = ConfigService();
+    final savedUrl = await configService.loadNeuralNetworkApiUrl();
+    if (savedUrl != null && mounted) {
+      setState(() {
+        _apiUrlController.text = savedUrl;
+      });
+    } else {
+      _apiUrlController.text = EnvConfig.neuralNetworkApiUrl;
+    }
+  }
+  
+  @override
+  void dispose() {
+    _apiUrlController.dispose();
+    super.dispose();
+  }
 
   Future<void> _showConfirmDialog(
     String title,
@@ -348,6 +376,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // Developer Section
               _buildSectionHeader('Developer'),
+              _buildActionTile(
+                'Neural Network API Configuration',
+                Icons.settings_ethernet,
+                () => _showApiUrlDialog(),
+                subtitle: 'Configure the neural network API endpoint',
+              ),
               _buildActionTile(
                 'Neural Network Diagnostics',
                 Icons.analytics_outlined,
@@ -734,5 +768,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final minute = _notificationTime.minute.toString().padLeft(2, '0');
     final period = _notificationTime.period == DayPeriod.am ? 'AM' : 'PM';
     return '$hour:$minute $period';
+  }
+  
+  Future<void> _showApiUrlDialog() async {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Neural Network API URL'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _apiUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'API URL',
+                  hintText: 'http://192.168.178.109:8000',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Enter the URL of your neural network API server. This would typically be the IP address and port of the server running the neural network service.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final newUrl = _apiUrlController.text.trim();
+                if (newUrl.isNotEmpty) {
+                  final configService = ConfigService();
+                  final success = await configService.saveNeuralNetworkApiUrl(newUrl);
+                  
+                  if (success) {
+                    // Show success message
+                    Navigator.of(context).pop();
+                    MessageOverlay.showSuccess(
+                      context,
+                      message: 'API URL updated to $newUrl',
+                    );
+                  } else {
+                    MessageOverlay.showError(
+                      context, 
+                      message: 'Failed to save API URL'
+                    );
+                  }
+                } else {
+                  MessageOverlay.showError(
+                    context,
+                    message: 'API URL cannot be empty',
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
