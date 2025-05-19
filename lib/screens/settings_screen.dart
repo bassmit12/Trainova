@@ -14,6 +14,7 @@ import '../widgets/message_overlay.dart';
 import '../config/env_config.dart';
 import 'edit_profile_screen.dart';
 import 'neural_network_diagnostic_screen.dart';
+import 'api_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -376,6 +377,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // Developer Section
               _buildSectionHeader('Developer'),
+              _buildActionTile(
+                'API Settings',
+                Icons.api,
+                () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => const ApiSettingsScreen()),
+                  );
+                },
+                subtitle: 'Configure API server addresses for predictions',
+              ),
               _buildActionTile(
                 'Neural Network API Configuration',
                 Icons.settings_ethernet,

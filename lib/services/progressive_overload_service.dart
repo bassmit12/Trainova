@@ -12,11 +12,15 @@ import '../services/workout_history_service.dart';
 
 class ProgressiveOverloadService {
   final String baseUrl;
+  final String feedbackUrl;
   final WorkoutHistoryService _historyService = WorkoutHistoryService();
 
   ProgressiveOverloadService({
     String? apiUrl,
-  }) : baseUrl = apiUrl ?? EnvConfig.neuralNetworkApiUrl;
+    String? feedbackApiUrl,
+  }) : 
+    baseUrl = apiUrl ?? EnvConfig.neuralNetworkApiUrl,
+    feedbackUrl = feedbackApiUrl ?? EnvConfig.feedbackApiUrl;
 
   /// Fetches a weight prediction for the next workout
   Future<WeightPrediction> predictNextWeight({
@@ -127,10 +131,16 @@ class ProgressiveOverloadService {
       }
 
       try {
-        // Try to use the neural network API first
-        return await _getPredictionFromApi(exerciseId, exerciseSets);
+        // Use the feedback-based prediction system
+        final prediction = await getFeedbackPrediction(exerciseId, exerciseSets);
+        if (prediction != null) {
+          return prediction;
+        }
+        
+        // Fall back to simple prediction if API fails
+        return _createSimplePrediction(exerciseSets);
       } catch (e) {
-        debugPrint('Error using API prediction: $e');
+        debugPrint('Error using feedback-based prediction: $e');
         // Fall back to simple prediction if API fails
         return _createSimplePrediction(exerciseSets);
       }
@@ -305,6 +315,179 @@ class ProgressiveOverloadService {
     } catch (e) {
       debugPrint('API prediction failed: $e');
       throw Exception('API prediction failed');
+    }
+  }
+
+  /// Sends feedback to the feedback-based prediction system about the accuracy of a prediction
+  /// This helps the system learn and improve future predictions
+  Future<Map<String, dynamic>> sendPredictionFeedback({
+    required String exercise,
+    required double predictedWeight,
+    required double actualWeight,
+    required bool success,
+    int? reps,
+  }) async {
+    try {
+      final url = '$feedbackUrl/feedback';
+      
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'exercise': exercise,
+          'predicted_weight': predictedWeight,
+          'actual_weight': actualWeight,
+          'success': success,
+          if (reps != null) 'reps': reps,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        debugPrint('Feedback sent successfully: ${data['message']}');
+        return data;
+      } else {
+        final error = jsonDecode(response.body);
+        debugPrint('Failed to send feedback: ${error['detail'] ?? 'Unknown error'}');
+        return {'error': error['detail'] ?? 'Unknown error'};
+      }
+    } catch (e) {
+      debugPrint('Failed to connect to Feedback API: $e');
+      return {'error': 'Failed to connect to Feedback API: $e'};
+    }
+  }
+
+  /// Gets a prediction from the feedback-based system
+  Future<WeightPrediction?> getFeedbackPrediction(
+    String exerciseId,
+    List<WorkoutSet> previousWorkouts,
+  ) async {
+    try {
+      final url = '$feedbackUrl/predict';
+      
+      // Transform workout sets into the format required by feedback API
+      final List<Map<String, dynamic>> workoutData = previousWorkouts.map((set) => {
+        'exercise': exerciseId,
+        'weight': set.weight,
+        'reps': set.reps,
+        'date': set.timestamp?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'success': true, // Assume completed sets were successful
+      }).toList();
+      
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'exercise': exerciseId,
+          'previous_workouts': workoutData,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        // Get suggested reps from the feedback system or use defaults
+        List<int> suggestedReps;
+        if (data.containsKey('suggested_reps') && data['suggested_reps'] != null) {
+          // Convert from dynamic list to int list
+          suggestedReps = List<int>.from(data['suggested_reps']);
+        } else {
+          // Default rep scheme if not provided by the API
+          suggestedReps = List<int>.filled(3, 8);
+        }
+        
+        // Convert feedback API response to WeightPrediction format
+        return WeightPrediction(
+          predictedWeight: data['weight'].toDouble(),
+          exercise: exerciseId,
+          confidence: data['confidence'].toDouble(),
+          suggestedReps: suggestedReps,
+          suggestedSets: suggestedReps.length,
+          message: data['message'] ?? 'Prediction from feedback-based system',
+        );
+      } else {
+        final error = jsonDecode(response.body);
+        debugPrint('Failed to get feedback prediction: ${error['detail'] ?? 'Unknown error'}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Failed to connect to Feedback API: $e');
+      return null;
+    }
+  }
+
+  /// Gets model stats from the feedback-based system
+  Future<Map<String, dynamic>> getFeedbackModelStats({String? exercise}) async {
+    try {
+      final queryParams = exercise != null ? {'exercise': exercise} : null;
+      final uri = Uri.parse('$feedbackUrl/stats').replace(queryParameters: queryParams);
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Failed to get feedback model stats: ${response.statusCode}');
+        return {'error': 'Failed to get model stats'};
+      }
+    } catch (e) {
+      debugPrint('Failed to connect to Feedback API: $e');
+      return {'error': 'Failed to connect to Feedback API'};
+    }
+  }
+  
+  /// Tests connection to the feedback API
+  Future<bool> testFeedbackApiConnection() async {
+    try {
+      final response = await http.get(Uri.parse('$feedbackUrl/'));
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Failed to connect to Feedback API: $e');
+      return false;
+    }
+  }
+
+  /// Gets predictions from both neural network and feedback systems for comparison
+  Future<Map<String, WeightPrediction?>> comparePredictions(String exerciseId) async {
+    try {
+      // Get exercise history for predictions
+      final exerciseSets = await _historyService.getExerciseHistory(exerciseId);
+      
+      // Return early if no history available
+      if (exerciseSets.isEmpty) {
+        return {
+          'neural_network': null,
+          'feedback': null,
+        };
+      }
+      
+      // Get predictions from both systems
+      WeightPrediction? neuralNetworkPrediction;
+      WeightPrediction? feedbackPrediction;
+      
+      try {
+        // Try to get neural network prediction
+        neuralNetworkPrediction = await getRecommendedWeight(exerciseId);
+      } catch (e) {
+        debugPrint('Error getting neural network prediction: $e');
+      }
+      
+      try {
+        // Try to get feedback-based prediction
+        feedbackPrediction = await getFeedbackPrediction(exerciseId, exerciseSets);
+      } catch (e) {
+        debugPrint('Error getting feedback-based prediction: $e');
+      }
+      
+      return {
+        'neural_network': neuralNetworkPrediction,
+        'feedback': feedbackPrediction,
+      };
+    } catch (e) {
+      debugPrint('Error comparing predictions: $e');
+      return {
+        'neural_network': null,
+        'feedback': null,
+      };
     }
   }
 }

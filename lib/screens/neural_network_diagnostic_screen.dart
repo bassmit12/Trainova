@@ -5,6 +5,7 @@ import '../utils/app_colors.dart';
 import '../config/api_config.dart';
 import '../config/env_config.dart';
 import '../services/config_service.dart';
+import '../models/workout_set.dart'; // Add import for WorkoutSet
 
 class NeuralNetworkDiagnosticScreen extends StatefulWidget {
   const NeuralNetworkDiagnosticScreen({Key? key}) : super(key: key);
@@ -19,11 +20,10 @@ class _NeuralNetworkDiagnosticScreenState
   late ProgressiveOverloadService _service;
   bool _isLoading = false;
   String _apiStatus = 'Not tested';
-  String _exercisesStatus = 'Not tested';
+  String _feedbackStatus = 'Not tested';
   String _predictionStatus = 'Not tested';
-  String _modelInfoStatus = 'Not tested';
-  Map<String, dynamic>? _modelInfo;
-  List<String>? _exercises;
+  String _statsStatus = 'Not tested';
+  Map<String, dynamic>? _statsInfo;
 
   @override
   void initState() {
@@ -52,18 +52,17 @@ class _NeuralNetworkDiagnosticScreenState
       _initializeService();
       // Reset test statuses
       _apiStatus = 'Not tested';
-      _exercisesStatus = 'Not tested';
+      _feedbackStatus = 'Not tested';
       _predictionStatus = 'Not tested';
-      _modelInfoStatus = 'Not tested';
-      _modelInfo = null;
-      _exercises = null;
+      _statsStatus = 'Not tested';
+      _statsInfo = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Neural Network Diagnostics')),
+      appBar: AppBar(title: const Text('Feedback System Diagnostics')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -79,31 +78,16 @@ class _NeuralNetworkDiagnosticScreenState
             _buildInfoCard(
               title: 'API Endpoint Configuration',
               content:
-                  'Progressive Overload API URL: ${EnvConfig.neuralNetworkApiUrl}',
+                  'Feedback API URL: ${EnvConfig.feedbackApiUrl}',
               icon: Icons.settings,
               color: Colors.blue,
             ),
             const SizedBox(height: 16),
             _buildInfoCard(
-              title: 'Supported Exercises',
-              content: _exercisesStatus,
-              icon: Icons.fitness_center,
-              color: _getStatusColor(_exercisesStatus),
-              details:
-                  _exercises != null
-                      ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children:
-                            _exercises!
-                                .map(
-                                  (e) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 4),
-                                    child: Text('• $e'),
-                                  ),
-                                )
-                                .toList(),
-                      )
-                      : null,
+              title: 'Feedback System',
+              content: _feedbackStatus,
+              icon: Icons.feedback,
+              color: _getStatusColor(_feedbackStatus),
             ),
             const SizedBox(height: 16),
             _buildInfoCard(
@@ -114,16 +98,16 @@ class _NeuralNetworkDiagnosticScreenState
             ),
             const SizedBox(height: 16),
             _buildInfoCard(
-              title: 'Model Information',
-              content: _modelInfoStatus,
-              icon: Icons.model_training,
-              color: _getStatusColor(_modelInfoStatus),
+              title: 'System Statistics',
+              content: _statsStatus,
+              icon: Icons.auto_graph,
+              color: _getStatusColor(_statsStatus),
               details:
-                  _modelInfo != null
+                  _statsInfo != null
                       ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children:
-                            _modelInfo!.entries
+                            _statsInfo!.entries
                                 .map(
                                   (e) => Padding(
                                     padding: const EdgeInsets.only(bottom: 4),
@@ -228,22 +212,19 @@ class _NeuralNetworkDiagnosticScreenState
     setState(() {
       _isLoading = true;
       _apiStatus = 'Testing connection...';
-      _exercisesStatus = 'Testing...';
+      _feedbackStatus = 'Testing...';
       _predictionStatus = 'Testing...';
-      _modelInfoStatus = 'Testing...';
+      _statsStatus = 'Testing...';
     });
 
     // Test basic API connection
     try {
-      final url = Uri.parse(
-        '${EnvConfig.neuralNetworkApiUrl}/api/health',
-      );
-      final response = await Future.delayed(
+      final connected = await Future.delayed(
         const Duration(milliseconds: 500),
-        () => _service.testConnection(),
+        () => _service.testFeedbackApiConnection(),
       );
       setState(() {
-        _apiStatus = 'Connected: ${response['status']}';
+        _apiStatus = connected ? 'Connected: API is online' : 'Failed to connect to API';
       });
     } catch (e) {
       setState(() {
@@ -251,42 +232,59 @@ class _NeuralNetworkDiagnosticScreenState
       });
     }
 
-    // Test getting supported exercises
+    // Test feedback system
     try {
-      final exercises = await Future.delayed(
+      final result = await Future.delayed(
         const Duration(milliseconds: 800),
-        () => _service.getSupportedExercises(),
-      );
-      setState(() {
-        _exercisesStatus = 'Success: ${exercises.length} exercises found';
-        _exercises = exercises;
-      });
-    } catch (e) {
-      setState(() {
-        _exercisesStatus = 'Error: $e';
-      });
-    }
-
-    // Test prediction
-    try {
-      final prediction = await Future.delayed(
-        const Duration(milliseconds: 1200),
-        () => _service.predictNextWeight(
-          userId: 1,
-          exercise: 'Bench Press',
-          previousWeights: [100, 105, 110, 115, 120], // Added 2 more weights
-          daysSinceWorkouts: [
-            7,
-            7,
-            7,
-            7,
-            7,
-          ], // Added 2 more days, using 7 days between each workout
+        () => _service.sendPredictionFeedback(
+          exercise: 'Test Exercise',
+          predictedWeight: 100.0,
+          actualWeight: 102.5,
+          success: true,
+          reps: 10,
         ),
       );
       setState(() {
-        _predictionStatus =
-            'Success: Predicted ${prediction.predictedWeight} kg';
+        _feedbackStatus = result['error'] != null 
+            ? 'Error: ${result['error']}' 
+            : 'Success: ${result['message'] ?? 'Feedback recorded'}';
+      });
+    } catch (e) {
+      setState(() {
+        _feedbackStatus = 'Error: $e';
+      });
+    }
+
+    // Test prediction with sample data
+    try {
+      // Create sample workout sets for testing
+      final sampleSets = [
+        WorkoutSet(
+          exerciseId: 'Test Exercise',
+          setNumber: 1,
+          weight: 100.0,
+          reps: 10,
+          isCompleted: true,
+          timestamp: DateTime.now().subtract(const Duration(days: 14)),
+        ),
+        WorkoutSet(
+          exerciseId: 'Test Exercise',
+          setNumber: 1,
+          weight: 105.0,
+          reps: 10,
+          isCompleted: true,
+          timestamp: DateTime.now().subtract(const Duration(days: 7)),
+        ),
+      ];
+      
+      final prediction = await Future.delayed(
+        const Duration(milliseconds: 1200),
+        () => _service.getFeedbackPrediction('Test Exercise', sampleSets),
+      );
+      setState(() {
+        _predictionStatus = prediction != null
+            ? 'Success: Predicted ${prediction.predictedWeight} kg with ${prediction.confidence! * 100}% confidence'
+            : 'Failed to get prediction';
       });
     } catch (e) {
       setState(() {
@@ -294,19 +292,21 @@ class _NeuralNetworkDiagnosticScreenState
       });
     }
 
-    // Test model info
+    // Test model stats
     try {
-      final modelInfo = await Future.delayed(
+      final stats = await Future.delayed(
         const Duration(milliseconds: 1500),
-        () => _service.getModelInfo(),
+        () => _service.getFeedbackModelStats(),
       );
       setState(() {
-        _modelInfoStatus = 'Success: Model information retrieved';
-        _modelInfo = modelInfo;
+        _statsStatus = stats['error'] != null
+            ? 'Error: ${stats['error']}'
+            : 'Success: System statistics retrieved';
+        _statsInfo = stats;
       });
     } catch (e) {
       setState(() {
-        _modelInfoStatus = 'Error: $e';
+        _statsStatus = 'Error: $e';
       });
     }
 

@@ -9,6 +9,8 @@ class WorkoutSet {
   double weight;
   int reps;
   bool isCompleted;
+  double? predictedWeight; // Added field to track the predicted weight
+  DateTime? timestamp;
 
   WorkoutSet({
     String? id,
@@ -17,6 +19,8 @@ class WorkoutSet {
     this.weight = 0.0,
     this.reps = 0,
     this.isCompleted = false,
+    this.predictedWeight, // Initialize with optional predicted weight
+    this.timestamp,
   }) : id = id ?? const Uuid().v4();
 
   // Create a copy with updated properties
@@ -27,6 +31,8 @@ class WorkoutSet {
     double? weight,
     int? reps,
     bool? isCompleted,
+    double? predictedWeight,
+    DateTime? timestamp,
   }) {
     return WorkoutSet(
       id: id ?? this.id,
@@ -35,6 +41,8 @@ class WorkoutSet {
       weight: weight ?? this.weight,
       reps: reps ?? this.reps,
       isCompleted: isCompleted ?? this.isCompleted,
+      predictedWeight: predictedWeight ?? this.predictedWeight,
+      timestamp: timestamp ?? this.timestamp,
     );
   }
 
@@ -47,6 +55,8 @@ class WorkoutSet {
       'weight': weight,
       'reps': reps,
       'is_completed': isCompleted,
+      'predicted_weight': predictedWeight,
+      'timestamp': timestamp?.toIso8601String(),
     };
   }
 
@@ -61,6 +71,12 @@ class WorkoutSet {
           : map['weight'],
       reps: map['reps'],
       isCompleted: map['is_completed'],
+      predictedWeight: map['predicted_weight'] != null
+          ? (map['predicted_weight'] is int)
+              ? (map['predicted_weight'] as int).toDouble()
+              : map['predicted_weight']
+          : null,
+      timestamp: map['timestamp'] != null ? DateTime.parse(map['timestamp']) : null,
     );
   }
 }

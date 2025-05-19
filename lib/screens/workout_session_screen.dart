@@ -99,6 +99,12 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     );
 
     await _sessionService.addSet(workoutSet);
+    
+    // Save the predicted weight to the set for feedback purposes
+    if (prediction != null) {
+      await _sessionService.savePredictedWeight(workoutSet.id, prediction.predictedWeight);
+    }
+    
     setState(() {
       sets.add(workoutSet);
     });
@@ -922,6 +928,19 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       }
       // Log error but don't fail the entire workout initialization
       print('Error fetching weight prediction for ${exercise.name}: $e');
+    }
+  }
+
+  // This new method stores the predicted weight with the workout set for feedback purposes
+  Future<void> _savePredictedWeightToSet(String setId, Exercise exercise) async {
+    final prediction = _exercisePredictions[exercise.id];
+    if (prediction != null) {
+      try {
+        await _sessionService.savePredictedWeight(setId, prediction.predictedWeight);
+        debugPrint('Saved predicted weight ${prediction.predictedWeight} for set $setId');
+      } catch (e) {
+        debugPrint('Failed to save predicted weight: $e');
+      }
     }
   }
 
