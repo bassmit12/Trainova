@@ -12,7 +12,8 @@ class WorkoutSessionService extends ChangeNotifier {
   final List<WorkoutSession> _sessionHistory = [];
   bool _isLoading = false;
   String? _error;
-  final ProgressiveOverloadService _progressiveOverloadService = ProgressiveOverloadService();
+  final ProgressiveOverloadService _progressiveOverloadService =
+      ProgressiveOverloadService();
 
   // Getters
   WorkoutSession? get activeSession => _activeSession;
@@ -79,18 +80,32 @@ class WorkoutSessionService extends ChangeNotifier {
   }
 
   // Update a set in the active session
-  Future<void> updateSet(String setId,
-      {double? weight, int? reps, bool? isCompleted}) async {
+  Future<void> updateSet(
+    String setId, {
+    double? weight,
+    int? reps,
+    bool? isCompleted,
+    int? rir,
+  }) async {
     if (_activeSession == null) {
       throw Exception('No active workout session');
     }
 
     _setLoading(true);
     try {
-      _activeSession!.updateSet(setId,
-          weight: weight, reps: reps, isCompleted: isCompleted);
-      await _saveActiveSession();
-      notifyListeners();
+      final index = _activeSession!.sets.indexWhere((set) => set.id == setId);
+      if (index != -1) {
+        _activeSession!.sets[index] = _activeSession!.sets[index].copyWith(
+          weight: weight,
+          reps: reps,
+          isCompleted: isCompleted,
+          rir: rir,
+        );
+        await _saveActiveSession();
+        notifyListeners();
+      } else {
+        throw Exception('Set not found');
+      }
     } catch (e) {
       _setError('Failed to update set: $e');
       rethrow;
@@ -133,10 +148,10 @@ class WorkoutSessionService extends ChangeNotifier {
     _setLoading(true);
     try {
       _activeSession!.complete();
-      
+
       // Send feedback to the feedback-based prediction system for each completed set
       await _sendFeedbackForCompletedSets();
-      
+
       await _saveWorkoutSession(_activeSession!);
       _sessionHistory.add(_activeSession!);
       _activeSession = null;
@@ -150,46 +165,54 @@ class WorkoutSessionService extends ChangeNotifier {
       _setLoading(false);
     }
   }
-  
+
   // Send feedback for all completed sets that had predictions
   Future<void> _sendFeedbackForCompletedSets() async {
     if (_activeSession == null) return;
-    
+
     // Group sets by exercise ID to send one feedback per exercise
     final exerciseSetMap = <String, List<WorkoutSet>>{};
-    
-    for (final set in _activeSession!.sets.where((s) => s.isCompleted && s.predictedWeight != null)) {
+
+    for (final set in _activeSession!.sets.where(
+      (s) => s.isCompleted && s.predictedWeight != null,
+    )) {
       if (!exerciseSetMap.containsKey(set.exerciseId)) {
         exerciseSetMap[set.exerciseId] = [];
       }
       exerciseSetMap[set.exerciseId]!.add(set);
     }
-    
+
     // For each exercise, send feedback based on the average of completed sets
     for (final exerciseId in exerciseSetMap.keys) {
       final sets = exerciseSetMap[exerciseId]!;
-      
+
       // Calculate average actual weight and predicted weight
-      final averageActualWeight = sets.map((s) => s.weight).reduce((a, b) => a + b) / sets.length;
-      
+      final averageActualWeight =
+          sets.map((s) => s.weight).reduce((a, b) => a + b) / sets.length;
+
       // We know predictedWeight is not null because of the filter in the where clause above
-      final averagePredictedWeight = sets
-          .map((s) => s.predictedWeight!)
-          .reduce((a, b) => a + b) / sets.length;
-      
+      final averagePredictedWeight =
+          sets.map((s) => s.predictedWeight!).reduce((a, b) => a + b) /
+          sets.length;
+
       // Calculate average reps
-      final averageReps = (sets.map((s) => s.reps).reduce((a, b) => a + b) / sets.length).round();
-      
+      final averageReps =
+          (sets.map((s) => s.reps).reduce((a, b) => a + b) / sets.length)
+              .round();
+
       // Send feedback to the API
       try {
         await _progressiveOverloadService.sendPredictionFeedback(
           exercise: exerciseId,
           predictedWeight: averagePredictedWeight,
           actualWeight: averageActualWeight,
-          success: true, // We assume the workout was successful since the sets are completed
+          success:
+              true, // We assume the workout was successful since the sets are completed
           reps: averageReps,
         );
-        debugPrint('Feedback sent for exercise $exerciseId - Predicted: $averagePredictedWeight, Actual: $averageActualWeight');
+        debugPrint(
+          'Feedback sent for exercise $exerciseId - Predicted: $averagePredictedWeight, Actual: $averageActualWeight',
+        );
       } catch (e) {
         // Log but don't stop workout completion
         debugPrint('Failed to send feedback for exercise $exerciseId: $e');

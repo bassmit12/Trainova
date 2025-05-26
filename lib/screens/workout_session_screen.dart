@@ -99,12 +99,15 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     );
 
     await _sessionService.addSet(workoutSet);
-    
+
     // Save the predicted weight to the set for feedback purposes
     if (prediction != null) {
-      await _sessionService.savePredictedWeight(workoutSet.id, prediction.predictedWeight);
+      await _sessionService.savePredictedWeight(
+        workoutSet.id,
+        prediction.predictedWeight,
+      );
     }
-    
+
     setState(() {
       sets.add(workoutSet);
     });
@@ -115,12 +118,14 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     double? weight,
     int? reps,
     bool? isCompleted,
+    int? rir,
   }) async {
     await _sessionService.updateSet(
       set.id,
       weight: weight,
       reps: reps,
       isCompleted: isCompleted,
+      rir: rir,
     );
 
     // Update UI state
@@ -136,6 +141,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
               isCompleted:
                   isCompleted ??
                   _exerciseSets[set.exerciseId]![index].isCompleted,
+              rir: rir ?? _exerciseSets[set.exerciseId]![index].rir,
             );
       }
     });
@@ -508,13 +514,16 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     );
   }
 
-  // Build a single set row with weight and reps input
+  // Build a single set row with weight, reps, and RIR input
   Widget _buildSetRow(WorkoutSet set, Color textColor) {
     final weightController = TextEditingController(
       text: set.weight > 0 ? set.weight.toString() : '',
     );
     final repsController = TextEditingController(
       text: set.reps > 0 ? set.reps.toString() : '',
+    );
+    final rirController = TextEditingController(
+      text: set.rir != null ? set.rir.toString() : '',
     );
 
     return Card(
@@ -731,6 +740,105 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+
+            // RIR (Reps in Reserve) input
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'REPS IN RESERVE (RIR)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message:
+                          'RIR represents how many more reps you could have done',
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    // Decrement button
+                    _buildWeightButton(
+                      icon: Icons.remove,
+                      onPressed: () {
+                        final currentRir =
+                            int.tryParse(rirController.text) ?? 0;
+                        if (currentRir > 0) {
+                          rirController.text = (currentRir - 1).toString();
+                          _updateSet(set, rir: currentRir - 1);
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 12),
+
+                    // RIR input field
+                    Expanded(
+                      child: TextField(
+                        controller: rirController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          hintText: '0-5',
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 16,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          final rir = int.tryParse(value);
+                          if (rir != null) {
+                            _updateSet(set, rir: rir);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Increment button
+                    _buildWeightButton(
+                      icon: Icons.add,
+                      onPressed: () {
+                        final currentRir =
+                            int.tryParse(rirController.text) ?? 0;
+                        if (currentRir < 10) {
+                          // Set reasonable upper limit
+                          rirController.text = (currentRir + 1).toString();
+                          _updateSet(set, rir: currentRir + 1);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -932,12 +1040,20 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   }
 
   // This new method stores the predicted weight with the workout set for feedback purposes
-  Future<void> _savePredictedWeightToSet(String setId, Exercise exercise) async {
+  Future<void> _savePredictedWeightToSet(
+    String setId,
+    Exercise exercise,
+  ) async {
     final prediction = _exercisePredictions[exercise.id];
     if (prediction != null) {
       try {
-        await _sessionService.savePredictedWeight(setId, prediction.predictedWeight);
-        debugPrint('Saved predicted weight ${prediction.predictedWeight} for set $setId');
+        await _sessionService.savePredictedWeight(
+          setId,
+          prediction.predictedWeight,
+        );
+        debugPrint(
+          'Saved predicted weight ${prediction.predictedWeight} for set $setId',
+        );
       } catch (e) {
         debugPrint('Failed to save predicted weight: $e');
       }
