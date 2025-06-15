@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import '../providers/theme_provider.dart';
 import '../services/auth_service.dart';
 import '../utils/app_colors.dart';
+import 'terms_of_service_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -47,18 +50,22 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    final backgroundColor = themeProvider.isDarkMode
-        ? AppColors.darkBackground
-        : AppColors.lightBackground;
-    final textPrimaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextPrimary
-        : AppColors.lightTextPrimary;
-    final textSecondaryColor = themeProvider.isDarkMode
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-    final textLightColor = themeProvider.isDarkMode
-        ? AppColors.darkTextLight
-        : AppColors.lightTextLight;
+    final backgroundColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkBackground
+            : AppColors.lightBackground;
+    final textPrimaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
+    final textSecondaryColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary;
+    final textLightColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextLight
+            : AppColors.lightTextLight;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -80,17 +87,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Image.asset(
                       'assets/images/brands/trainova_v3.png',
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Icon(
-                          Icons.fitness_center,
-                          size: 60,
-                          color: Colors.white,
-                        ),
-                      ),
+                      errorBuilder:
+                          (context, error, stackTrace) => Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.fitness_center,
+                              size: 60,
+                              color: Colors.white,
+                            ),
+                          ),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -110,10 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Your Personalized Workout Companion',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: textSecondaryColor,
-                    ),
+                    style: TextStyle(fontSize: 18, color: textSecondaryColor),
                   ),
                   const SizedBox(height: 60),
 
@@ -134,9 +139,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(4),
                       child: InkWell(
-                        onTap: _isLoading
-                            ? null
-                            : () => _signInWithGoogle(context),
+                        onTap:
+                            _isLoading
+                                ? null
+                                : () => _signInWithGoogle(context),
                         borderRadius: BorderRadius.circular(4),
                         child: Padding(
                           padding: const EdgeInsets.all(1.0),
@@ -162,7 +168,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: Color(
-                                      0xFF757575), // Standard Google button text color
+                                    0xFF757575,
+                                  ), // Standard Google button text color
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -174,10 +181,56 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  Text(
-                    'By continuing, you agree to our Terms of Service and Privacy Policy',
+                  // Terms and Privacy Policy with clickable links
+                  RichText(
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: textLightColor),
+                    text: TextSpan(
+                      style: TextStyle(fontSize: 12, color: textLightColor),
+                      children: [
+                        const TextSpan(
+                          text: 'By continuing, you agree to our ',
+                        ),
+                        TextSpan(
+                          text: 'Terms of Service',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          recognizer:
+                              TapGestureRecognizer()
+                                ..onTap = () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              const TermsOfServiceScreen(),
+                                    ),
+                                  );
+                                },
+                        ),
+                        const TextSpan(text: ' and '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          recognizer:
+                              TapGestureRecognizer()
+                                ..onTap = () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              const PrivacyPolicyScreen(),
+                                    ),
+                                  );
+                                },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -215,54 +268,68 @@ class GoogleLogoPainter extends CustomPainter {
     final Paint greenPaint = Paint()..color = const Color(0xFF34A853);
 
     // Create paths for each color section
-    final Path bluePath = Path()
-      ..moveTo(width * 0.75, height * 0.5)
-      ..lineTo(width * 0.85, height * 0.5)
-      ..arcTo(
-        Rect.fromLTWH(width * 0.45, 0, width * 0.55, height),
-        -1.57, // -90 degrees in radians
-        3.14, // 180 degrees in radians
-        false,
-      )
-      ..lineTo(width * 0.75, height * 0.1)
-      ..close();
+    final Path bluePath =
+        Path()
+          ..moveTo(width * 0.75, height * 0.5)
+          ..lineTo(width * 0.85, height * 0.5)
+          ..arcTo(
+            Rect.fromLTWH(width * 0.45, 0, width * 0.55, height),
+            -1.57, // -90 degrees in radians
+            3.14, // 180 degrees in radians
+            false,
+          )
+          ..lineTo(width * 0.75, height * 0.1)
+          ..close();
 
-    final Path redPath = Path()
-      ..moveTo(width * 0.25, height * 0.3)
-      ..lineTo(width * 0.5, height * 0.3)
-      ..lineTo(width * 0.5, height * 0.7)
-      ..lineTo(width * 0.25, height * 0.7)
-      ..arcTo(
-        Rect.fromLTWH(0, height * 0.3, width * 0.5, height * 0.4),
-        1.57, // 90 degrees in radians
-        3.14, // 180 degrees in radians
-        false,
-      )
-      ..close();
+    final Path redPath =
+        Path()
+          ..moveTo(width * 0.25, height * 0.3)
+          ..lineTo(width * 0.5, height * 0.3)
+          ..lineTo(width * 0.5, height * 0.7)
+          ..lineTo(width * 0.25, height * 0.7)
+          ..arcTo(
+            Rect.fromLTWH(0, height * 0.3, width * 0.5, height * 0.4),
+            1.57, // 90 degrees in radians
+            3.14, // 180 degrees in radians
+            false,
+          )
+          ..close();
 
-    final Path yellowPath = Path()
-      ..moveTo(width * 0.25, height * 0.7)
-      ..lineTo(width * 0.5, height * 0.7)
-      ..lineTo(width * 0.5, height * 0.92)
-      ..arcTo(
-        Rect.fromLTWH(width * 0.25, height * 0.6, width * 0.5, height * 0.4),
-        -1.57, // -90 degrees in radians
-        -1.57, // -90 degrees in radians
-        false,
-      )
-      ..close();
+    final Path yellowPath =
+        Path()
+          ..moveTo(width * 0.25, height * 0.7)
+          ..lineTo(width * 0.5, height * 0.7)
+          ..lineTo(width * 0.5, height * 0.92)
+          ..arcTo(
+            Rect.fromLTWH(
+              width * 0.25,
+              height * 0.6,
+              width * 0.5,
+              height * 0.4,
+            ),
+            -1.57, // -90 degrees in radians
+            -1.57, // -90 degrees in radians
+            false,
+          )
+          ..close();
 
-    final Path greenPath = Path()
-      ..moveTo(width * 0.5, height * 0.5)
-      ..lineTo(width * 0.5, height * 0.7)
-      ..lineTo(width * 0.85, height * 0.7)
-      ..arcTo(
-        Rect.fromLTWH(width * 0.5, height * 0.3, width * 0.35, height * 0.4),
-        1.57, // 90 degrees in radians
-        -3.14, // -180 degrees in radians
-        false,
-      )
-      ..close();
+    final Path greenPath =
+        Path()
+          ..moveTo(width * 0.5, height * 0.5)
+          ..lineTo(width * 0.5, height * 0.7)
+          ..lineTo(width * 0.85, height * 0.7)
+          ..arcTo(
+            Rect.fromLTWH(
+              width * 0.5,
+              height * 0.3,
+              width * 0.35,
+              height * 0.4,
+            ),
+            1.57, // 90 degrees in radians
+            -3.14, // -180 degrees in radians
+            false,
+          )
+          ..close();
 
     // Draw each section
     canvas.drawPath(bluePath, bluePaint);

@@ -516,6 +516,19 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
 
   // Build a single set row with weight, reps, and RIR input
   Widget _buildSetRow(WorkoutSet set, Color textColor) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    
+    // Theme-aware colors for input fields
+    final inputFillColor = themeProvider.isDarkMode 
+        ? AppColors.darkCardBackground.withOpacity(0.8)
+        : Colors.grey.shade100;
+    final labelColor = themeProvider.isDarkMode 
+        ? AppColors.darkTextSecondary
+        : Colors.grey.shade600;
+    final hintColor = themeProvider.isDarkMode 
+        ? AppColors.darkTextSecondary.withOpacity(0.6)
+        : Colors.grey.shade400;
+    
     final weightController = TextEditingController(
       text: set.weight > 0 ? set.weight.toString() : '',
     );
@@ -560,7 +573,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                       color:
                           set.isCompleted
                               ? AppColors.primary
-                              : Colors.grey.shade200,
+                              : (themeProvider.isDarkMode 
+                                  ? AppColors.darkCardBackground.withOpacity(0.7)
+                                  : Colors.grey.shade200),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -569,7 +584,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                         color:
                             set.isCompleted
                                 ? Colors.white
-                                : Colors.grey.shade700,
+                                : (themeProvider.isDarkMode 
+                                    ? AppColors.darkTextSecondary
+                                    : Colors.grey.shade700),
                         fontWeight: FontWeight.w500,
                         fontSize: 12,
                       ),
@@ -589,7 +606,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
+                    color: labelColor,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -626,7 +643,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                         ),
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Colors.grey.shade100,
+                          fillColor: inputFillColor,
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 12,
                           ),
@@ -634,7 +651,6 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide.none,
                           ),
-                          suffixText: 'kg',
                         ),
                         onChanged: (value) {
                           final weight = double.tryParse(value);
@@ -674,7 +690,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
+                    color: labelColor,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -707,7 +723,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                         ),
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Colors.grey.shade100,
+                          fillColor: inputFillColor,
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 12,
                           ),
@@ -753,7 +769,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade600,
+                        color: labelColor,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -763,7 +779,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                       child: Icon(
                         Icons.info_outline,
                         size: 14,
-                        color: Colors.grey.shade600,
+                        color: labelColor,
                       ),
                     ),
                   ],
@@ -798,7 +814,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                         ),
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Colors.grey.shade100,
+                          fillColor: inputFillColor,
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 12,
                           ),
@@ -808,7 +824,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                           ),
                           hintText: '0-5',
                           hintStyle: TextStyle(
-                            color: Colors.grey.shade400,
+                            color: hintColor,
                             fontSize: 16,
                           ),
                         ),

@@ -11,6 +11,8 @@ import '../models/user.dart';
 import '../widgets/message_overlay.dart';
 import 'edit_profile_screen.dart';
 import 'network_selection_screen.dart';
+import 'terms_of_service_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -305,15 +307,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Data & Privacy Section
               _buildSectionHeader('Data & Privacy'),
               _buildActionTile('Privacy Policy', Icons.privacy_tip, () {
-                MessageOverlay.showInfo(
-                  context,
-                  message: 'Privacy Policy - Coming soon',
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const PrivacyPolicyScreen(),
+                  ),
                 );
               }),
               _buildActionTile('Terms of Service', Icons.description, () {
-                MessageOverlay.showInfo(
-                  context,
-                  message: 'Terms of Service - Coming soon',
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const TermsOfServiceScreen(),
+                  ),
                 );
               }),
               _buildActionTile('Export Your Data', Icons.file_download, () {
