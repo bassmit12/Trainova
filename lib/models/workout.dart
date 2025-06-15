@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'exercise.dart';
 import 'workout_history.dart';
+import '../services/cache_service.dart'; // Add cache service
 
 class Workout {
   final String id;
@@ -70,11 +71,26 @@ class Workout {
     };
   }
 
-  // Fetch all workouts (public + user's own)
+  // Fetch all workouts (public + user's own) with caching
   static Future<List<Workout>> fetchWorkouts() async {
     try {
       final supabase = Supabase.instance.client;
       final userId = supabase.auth.currentUser?.id;
+      final cache = CacheService();
+
+      // Check cache first
+      final cacheKey = 'cache_workouts_$userId';
+      final cachedWorkouts = cache.get<List<dynamic>>(
+        cacheKey,
+        maxAge: const Duration(minutes: 10), // Cache for 10 minutes
+      );
+      
+      if (cachedWorkouts != null) {
+        debugPrint('Using cached workouts data');
+        return cachedWorkouts.map((data) => _workoutFromCachedData(data)).toList();
+      }
+
+      debugPrint('Fetching workouts from database');
 
       // Fetch workouts visible to current user
       final response = await supabase
@@ -85,6 +101,7 @@ class Workout {
 
       // Create a list to hold the results
       final List<Workout> workouts = [];
+      final List<Map<String, dynamic>> workoutDataForCache = [];
 
       // For each workout, fetch its exercises
       for (final workoutData in response) {
@@ -98,6 +115,8 @@ class Workout {
             .order('order_index');
 
         final List<Exercise> exercises = [];
+        final List<Map<String, dynamic>> exerciseDataForCache = [];
+        
         for (final item in exercisesResponse) {
           final exerciseData = item['exercise'] as Map<String, dynamic>;
           final customSets = item['custom_sets'];
@@ -115,10 +134,27 @@ class Workout {
           }
 
           exercises.add(exercise);
+          
+          // Store exercise data for cache
+          exerciseDataForCache.add({
+            'exercise_data': exerciseData,
+            'custom_sets': customSets,
+            'custom_reps': customReps,
+          });
         }
 
-        workouts.add(Workout.fromMap(workoutData, exercises));
+        final workout = Workout.fromMap(workoutData, exercises);
+        workouts.add(workout);
+        
+        // Store workout data for cache
+        workoutDataForCache.add({
+          'workout_data': workoutData,
+          'exercises_data': exerciseDataForCache,
+        });
       }
+
+      // Cache the results
+      await cache.store(cacheKey, workoutDataForCache, duration: const Duration(minutes: 10));
 
       return workouts;
     } catch (e) {
@@ -127,7 +163,109 @@ class Workout {
     }
   }
 
-  // Create a new workout with exercises
+  // Helper method to reconstruct workout from cached data
+  static Workout _workoutFromCachedData(Map<String, dynamic> cachedData) {
+    final workoutData = cachedData['workout_data'] as Map<String, dynamic>;
+    final exercisesData = cachedData['exercises_data'] as List<dynamic>;
+    
+    final List<Exercise> exercises = exercisesData.map((item) {
+      final exerciseData = item['exercise_data'] as Map<String, dynamic>;
+      final customSets = item['custom_sets'];
+      final customReps = item['custom_reps'];
+      
+      Exercise exercise = Exercise.fromMap(exerciseData);
+      
+      if (customSets != null) {
+        exercise = exercise.copyWith(sets: customSets);
+      }
+      if (customReps != null) {
+        exercise = exercise.copyWith(reps: customReps);
+      }
+      
+      return exercise;
+    }).toList();
+    
+    return Workout.fromMap(workoutData, exercises);
+  }
+
+  // Fetch a single workout by ID with caching
+  static Future<Workout?> fetchWorkoutById(String workoutId) async {
+    try {
+      final cache = CacheService();
+      
+      // Check cache first
+      final cacheKey = 'cache_workout_$workoutId';
+      final cachedWorkout = cache.get<Map<String, dynamic>>(
+        cacheKey,
+        maxAge: const Duration(minutes: 15), // Cache individual workouts longer
+      );
+      
+      if (cachedWorkout != null) {
+        debugPrint('Using cached workout data for ID: $workoutId');
+        return _workoutFromCachedData(cachedWorkout);
+      }
+
+      debugPrint('Fetching workout from database for ID: $workoutId');
+      
+      final supabase = Supabase.instance.client;
+
+      // Get workout data
+      final workoutResponse =
+          await supabase.from('workouts').select().eq('id', workoutId).single();
+
+      // Get exercises for this workout
+      final exercisesResponse = await supabase
+          .from('workout_exercises')
+          .select('exercise:exercise_id(*), custom_sets, custom_reps')
+          .eq('workout_id', workoutId)
+          .order('order_index');
+
+      final List<Exercise> exercises = [];
+      final List<Map<String, dynamic>> exerciseDataForCache = [];
+      
+      for (final item in exercisesResponse) {
+        final exerciseData = item['exercise'] as Map<String, dynamic>;
+        final customSets = item['custom_sets'];
+        final customReps = item['custom_reps'];
+
+        // Create the exercise with base data
+        Exercise exercise = Exercise.fromMap(exerciseData);
+
+        // Override with custom sets and reps if available
+        if (customSets != null) {
+          exercise = exercise.copyWith(sets: customSets);
+        }
+        if (customReps != null) {
+          exercise = exercise.copyWith(reps: customReps);
+        }
+
+        exercises.add(exercise);
+        
+        // Store exercise data for cache
+        exerciseDataForCache.add({
+          'exercise_data': exerciseData,
+          'custom_sets': customSets,
+          'custom_reps': customReps,
+        });
+      }
+
+      final workout = Workout.fromMap(workoutResponse, exercises);
+      
+      // Cache the result
+      final dataForCache = {
+        'workout_data': workoutResponse,
+        'exercises_data': exerciseDataForCache,
+      };
+      await cache.store(cacheKey, dataForCache, duration: const Duration(minutes: 15));
+
+      return workout;
+    } catch (e) {
+      debugPrint('Error fetching workout by ID: $e');
+      return null;
+    }
+  }
+
+  // Create a new workout with cache invalidation
   static Future<Workout?> createWorkout(Workout workout) async {
     try {
       final supabase = Supabase.instance.client;
@@ -168,6 +306,10 @@ class Workout {
         });
       }
 
+      // Invalidate workouts cache
+      final cache = CacheService();
+      await cache.remove('cache_workouts_$userId');
+
       // Return the created workout with exercises
       return fetchWorkoutById(workoutId);
     } catch (e) {
@@ -176,7 +318,7 @@ class Workout {
     }
   }
 
-  // Update an existing workout
+  // Update an existing workout with cache invalidation
   Future<Workout?> updateWorkout() async {
     try {
       final supabase = Supabase.instance.client;
@@ -209,31 +351,6 @@ class Workout {
           );
           if (newExercise == null) throw Exception('Failed to create exercise');
           exerciseId = newExercise.id;
-        } else {
-          // Check if the exercise needs to be updated (sets/reps)
-          // We need to do this without modifying the original exercise in the database
-          // So we'll use the workout_exercises junction table to store the custom sets/reps
-
-          // First check if the exercise has custom sets or reps for this workout
-          final exerciseInfo =
-              await supabase
-                  .from('workout_exercises')
-                  .select('custom_sets, custom_reps')
-                  .eq('workout_id', id)
-                  .eq('exercise_id', exerciseId)
-                  .maybeSingle();
-
-          if (exerciseInfo != null) {
-            final currentSets = exerciseInfo['custom_sets'];
-            final currentReps = exerciseInfo['custom_reps'];
-
-            // Only update if changed
-            if (exercise.sets != currentSets || exercise.reps != currentReps) {
-              debugPrint(
-                'Updating exercise ${exercise.name} sets/reps: ${exercise.sets}/${exercise.reps}',
-              );
-            }
-          }
         }
 
         // Add to workout_exercises junction table with custom sets and reps
@@ -246,6 +363,11 @@ class Workout {
         });
       }
 
+      // Invalidate related caches
+      final cache = CacheService();
+      await cache.remove('cache_workouts_$userId');
+      await cache.remove('cache_workout_$id');
+
       // Return the updated workout
       return fetchWorkoutById(id);
     } catch (e) {
@@ -254,7 +376,7 @@ class Workout {
     }
   }
 
-  // Delete a workout
+  // Delete a workout with cache invalidation
   Future<bool> deleteWorkout() async {
     try {
       final supabase = Supabase.instance.client;
@@ -272,6 +394,11 @@ class Workout {
       // Delete workout (workout_exercises entries will be deleted by CASCADE)
       await supabase.from('workouts').delete().eq('id', id);
 
+      // Invalidate related caches
+      final cache = CacheService();
+      await cache.remove('cache_workouts_$userId');
+      await cache.remove('cache_workout_$id');
+
       return true;
     } catch (e) {
       debugPrint('Error deleting workout: $e');
@@ -279,54 +406,28 @@ class Workout {
     }
   }
 
-  // Fetch a single workout by ID
-  static Future<Workout?> fetchWorkoutById(String workoutId) async {
-    try {
-      final supabase = Supabase.instance.client;
-
-      // Get workout data
-      final workoutResponse =
-          await supabase.from('workouts').select().eq('id', workoutId).single();
-
-      // Get exercises for this workout
-      final exercisesResponse = await supabase
-          .from('workout_exercises')
-          .select('exercise:exercise_id(*), custom_sets, custom_reps')
-          .eq('workout_id', workoutId)
-          .order('order_index');
-
-      final List<Exercise> exercises = [];
-      for (final item in exercisesResponse) {
-        final exerciseData = item['exercise'] as Map<String, dynamic>;
-        final customSets = item['custom_sets'];
-        final customReps = item['custom_reps'];
-
-        // Create the exercise with base data
-        Exercise exercise = Exercise.fromMap(exerciseData);
-
-        // Override with custom sets and reps if available
-        if (customSets != null) {
-          exercise = exercise.copyWith(sets: customSets);
-        }
-        if (customReps != null) {
-          exercise = exercise.copyWith(reps: customReps);
-        }
-
-        exercises.add(exercise);
-      }
-
-      return Workout.fromMap(workoutResponse, exercises);
-    } catch (e) {
-      debugPrint('Error fetching workout by ID: $e');
-      return null;
-    }
-  }
-
-  // Calculate workout statistics based on workout history
+  // Calculate workout statistics with caching
   static Future<Map<String, dynamic>> calculateWorkoutStatistics({
     int daysBack = 30,
   }) async {
     try {
+      final cache = CacheService();
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      
+      // Check cache first
+      final cacheKey = 'cache_workout_stats_${userId}_${daysBack}d';
+      final cachedStats = cache.get<Map<String, dynamic>>(
+        cacheKey,
+        maxAge: const Duration(hours: 1), // Cache stats for 1 hour
+      );
+      
+      if (cachedStats != null) {
+        debugPrint('Using cached workout statistics');
+        return cachedStats;
+      }
+
+      debugPrint('Calculating workout statistics from database');
+
       // Fetch workout history
       final List<WorkoutHistory> history =
           await WorkoutHistory.fetchUserWorkoutHistory();
@@ -353,12 +454,17 @@ class Workout {
       // Convert minutes to hours with one decimal place
       final double hoursSpent = totalMinutes / 60;
 
-      return {
+      final stats = {
         'workoutCount': workoutCount,
         'caloriesBurned': totalCaloriesBurned,
         'hoursSpent': hoursSpent,
         'timeRange': daysBack,
       };
+
+      // Cache the results
+      await cache.store(cacheKey, stats, duration: const Duration(hours: 1));
+
+      return stats;
     } catch (e) {
       debugPrint('Error calculating workout statistics: $e');
       return {

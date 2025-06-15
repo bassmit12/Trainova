@@ -43,3 +43,22 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# SECURITY: Environment files with sensitive data
+.env
+.env.local
+.env.production
+.env.staging
+key.properties
+
+# Temporary files
+temp.b64
+
+# Machine Learning models and data (if sensitive)
+*.pt
+*.joblib
+/data/sensitive/
+
+# Logs and debug files
+*.log
+debug_*.txt

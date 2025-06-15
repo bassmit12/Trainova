@@ -4,10 +4,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/user.dart';
 import '../config/supabase_config.dart';
+import '../services/cache_service.dart'; // Add cache service
 
 class AuthService extends ChangeNotifier {
   final SupabaseClient _client;
   UserModel? _currentUser;
+  bool _isLoading = false;
+  final CacheService _cache = CacheService(); // Add cache instance
 
   // Getter for the current user
   UserModel? get currentUser => _currentUser;
@@ -17,6 +20,9 @@ class AuthService extends ChangeNotifier {
 
   // Getter to check if profile is complete
   bool get isProfileComplete => _currentUser?.isProfileComplete == true;
+
+  // Getter for loading state
+  bool get isLoading => _isLoading;
 
   AuthService(this._client) {
     _initializeUser();
@@ -219,13 +225,27 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Get the current user profile from Supabase
+  // Get the current user profile from Supabase with caching
   Future<UserModel?> getCurrentUserProfile({bool forceRefresh = false}) async {
     try {
       final userId = _client.auth.currentUser?.id;
       if (userId == null) {
         print('getCurrentUserProfile: No user ID found');
         return null;
+      }
+
+      // Check cache first unless force refresh is requested
+      final cacheKey = 'cache_user_profile_$userId';
+      if (!forceRefresh) {
+        final cachedUser = _cache.get<Map<String, dynamic>>(
+          cacheKey,
+          maxAge: const Duration(minutes: 15), // Cache for 15 minutes
+        );
+        if (cachedUser != null) {
+          _currentUser = UserModel.fromMap(cachedUser);
+          notifyListeners();
+          return _currentUser;
+        }
       }
 
       print('getCurrentUserProfile: Fetching profile for user: $userId');
@@ -276,38 +296,23 @@ class AuthService extends ChangeNotifier {
             .limit(1);
 
         if (newProfileData.isNotEmpty) {
-          // Create a new map for merging
-          Map<String, dynamic> mergedData = {};
-
-          // Add current user data if available
-          if (_currentUser != null) {
-            mergedData.addAll(_currentUser!.toJson());
-          }
-
-          // Add the response data
-          mergedData.addAll(newProfileData.first);
-
-          _currentUser = UserModel.fromJson(mergedData);
-          print(
-            'getCurrentUserProfile: Profile created and loaded successfully',
-          );
+          profileData = newProfileData;
         }
-      } else {
-        print('getCurrentUserProfile: Profile found, merging data...');
-        // Use existing profile data
-        // Create a new map for merging
-        Map<String, dynamic> mergedData = {};
+      }
 
-        // Add current user data if available
-        if (_currentUser != null) {
-          mergedData.addAll(_currentUser!.toJson());
-        }
+      if (profileData.isNotEmpty) {
+        final profile = profileData.first;
+        print('getCurrentUserProfile: Profile found: $profile');
 
-        // Add the response data
-        mergedData.addAll(profileData.first);
+        // Create user model from profile data
+        _currentUser = UserModel.fromMap(profile);
 
-        _currentUser = UserModel.fromJson(mergedData);
-        print('getCurrentUserProfile: Profile loaded successfully');
+        // Cache the user profile data
+        await _cache.store(
+          cacheKey,
+          profile,
+          duration: const Duration(minutes: 15),
+        );
       }
 
       // Debug log current user data
@@ -342,7 +347,7 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Update user profile in Supabase
+  // Update user profile with cache invalidation
   Future<void> updateUserProfile(Map<String, dynamic> profileData) async {
     try {
       final userId = _client.auth.currentUser?.id;
@@ -354,8 +359,12 @@ class AuthService extends ChangeNotifier {
       // Update profile in Supabase
       await _client.from('profiles').upsert({'id': userId, ...profileData});
 
+      // Invalidate cache
+      final cacheKey = 'cache_user_profile_$userId';
+      await _cache.remove(cacheKey);
+
       // Refresh user data
-      await getCurrentUserProfile();
+      await getCurrentUserProfile(forceRefresh: true);
     } catch (e) {
       print('Error updating user profile: $e');
       rethrow;

@@ -139,7 +139,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                           IconButton(
                             icon: Icon(Icons.search, color: textPrimaryColor),
                             onPressed: () {
-                              // TODO: Implement search functionality
+                              // Search functionality can be implemented later if needed
                             },
                           ),
                           IconButton(
@@ -148,7 +148,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                               color: textPrimaryColor,
                             ),
                             onPressed: () {
-                              // TODO: Implement filter functionality
+                              // Filter functionality can be implemented later if needed
                             },
                           ),
                         ],

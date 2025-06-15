@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'workout_set.dart';
+import '../services/cache_service.dart'; // Add cache service import
 
 class WorkoutHistory {
   final String id;
@@ -92,7 +93,7 @@ class WorkoutHistory {
     );
   }
 
-  // Save workout history to Supabase
+  // Save workout history to Supabase with cache invalidation
   static Future<void> saveWorkoutHistory(WorkoutHistory history) async {
     try {
       final supabase = Supabase.instance.client;
@@ -121,17 +122,25 @@ class WorkoutHistory {
           'is_completed': set.isCompleted,
         });
       }
+
+      // Invalidate related caches
+      final cache = CacheService();
+      final userId = history.userId;
+      await cache.remove('cache_workout_history_$userId');
+      await cache.remove('cache_workout_stats_${userId}_30d'); // Also invalidate workout stats cache
+      
     } catch (e) {
       debugPrint('Error saving workout history: $e');
       throw Exception('Failed to save workout history: $e');
     }
   }
 
-  // Fetch workout history for the current user
+  // Fetch workout history for the current user with caching
   static Future<List<WorkoutHistory>> fetchUserWorkoutHistory() async {
     try {
       final supabase = Supabase.instance.client;
       final userId = supabase.auth.currentUser?.id;
+      final cache = CacheService();
 
       debugPrint('Fetching workout history for user ID: $userId');
 
@@ -139,6 +148,20 @@ class WorkoutHistory {
         debugPrint('No logged in user found.');
         return [];
       }
+
+      // Check cache first
+      final cacheKey = 'cache_workout_history_$userId';
+      final cachedHistory = cache.get<List<dynamic>>(
+        cacheKey,
+        maxAge: const Duration(minutes: 20), // Cache for 20 minutes
+      );
+      
+      if (cachedHistory != null) {
+        debugPrint('Using cached workout history data');
+        return cachedHistory.map((data) => WorkoutHistory.fromMap(data as Map<String, dynamic>)).toList();
+      }
+
+      debugPrint('Fetching workout history from database');
 
       // Fetch workout history records
       final historyResponse = await supabase
@@ -166,6 +189,7 @@ class WorkoutHistory {
       }
 
       List<WorkoutHistory> historyList = [];
+      List<Map<String, dynamic>> historyDataForCache = [];
 
       // For each history record, fetch its sets
       for (final historyData in historyResponse) {
@@ -195,15 +219,19 @@ class WorkoutHistory {
         // Create the WorkoutHistory object with sets
         try {
           final completeHistoryData = Map<String, dynamic>.from(historyData);
-          completeHistoryData['sets'] = sets; // Add the sets
+          completeHistoryData['sets'] = sets.map((set) => set.toMap()).toList(); // Convert sets for caching
 
           historyList.add(WorkoutHistory.fromMap(completeHistoryData));
+          historyDataForCache.add(completeHistoryData); // Store for cache
           debugPrint(
               'Added workout history: ${completeHistoryData['id']} with ${sets.length} sets');
         } catch (e) {
           debugPrint('Error creating WorkoutHistory: $e');
         }
       }
+
+      // Cache the results
+      await cache.store(cacheKey, historyDataForCache, duration: const Duration(minutes: 20));
 
       debugPrint('Fetched ${historyList.length} workout histories');
       return historyList;

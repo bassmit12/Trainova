@@ -1,42 +1,74 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart' as dotenv;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class EnvConfig {
-  // SharedPreferences instance
-  static SharedPreferences? _prefs;
-  
+  static bool _initialized = false;
+
   // Load environment variables
   static Future<void> initialize() async {
+    if (_initialized) return;
+
     try {
-      await dotenv.dotenv.load(fileName: '.env');
-      _prefs = await SharedPreferences.getInstance();
-      debugPrint('Environment variables and preferences loaded successfully');
+      await dotenv.load(fileName: '.env');
+      _initialized = true;
     } catch (e) {
-      debugPrint('Error loading environment variables: $e');
+      print('Warning: Could not load .env file: $e');
+      _initialized = true; // Mark as initialized even if .env is missing
     }
   }
 
   // Get API keys from environment
-  static String get geminiApiKey => dotenv.dotenv.env['GEMINI_API_KEY'] ?? '';
+  static String get geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
   // Neural Network API endpoint
-  static String get neuralNetworkApiUrl {
-    final savedUrl = _prefs?.getString('NEURAL_NETWORK_API_URL');
-    return savedUrl ?? dotenv.dotenv.env['NEURAL_NETWORK_API_URL'] ?? 'http://192.168.178.109:8000';
-  }
-  
-  // Feedback-based API endpoint
-  static String get feedbackApiUrl {
-    final savedUrl = _prefs?.getString('FEEDBACK_API_URL');
-    return savedUrl ?? dotenv.dotenv.env['FEEDBACK_API_URL'] ?? 'http://192.168.178.109:8001';
+  static Future<String> get neuralNetworkApiUrl async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedUrl = prefs.getString('NEURAL_NETWORK_API_URL');
+    final envUrl = dotenv.env['NEURAL_NETWORK_API_URL'];
+
+    if (savedUrl != null && savedUrl.isNotEmpty) return savedUrl;
+    if (envUrl != null && envUrl.isNotEmpty) return envUrl;
+
+    throw Exception(
+      'NEURAL_NETWORK_API_URL not configured. Please set it in your .env file or app settings.',
+    );
   }
 
-  // API Endpoints
-  static const String geminiApiUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  // Feedback-based API endpoint
+  static Future<String> get feedbackApiUrl async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedUrl = prefs.getString('FEEDBACK_API_URL');
+    final envUrl = dotenv.env['FEEDBACK_API_URL'];
+
+    if (savedUrl != null && savedUrl.isNotEmpty) return savedUrl;
+    if (envUrl != null && envUrl.isNotEmpty) return envUrl;
+
+    throw Exception(
+      'FEEDBACK_API_URL not configured. Please set it in your .env file or app settings.',
+    );
+  }
+
+  // Secure Gemini API endpoint
+  static String get geminiApiUrl {
+    final url = dotenv.env['GEMINI_API_URL'];
+    if (url == null || url.isEmpty) {
+      throw Exception(
+        'GEMINI_API_URL not found in environment variables. '
+        'Please add it to your .env file.',
+      );
+    }
+    return url;
+  }
+
+  // Environment type for conditional behavior
+  static String get environment {
+    return dotenv.env['ENVIRONMENT'] ?? 'development';
+  }
+
+  static bool get isProduction => environment == 'production';
+  static bool get isDevelopment => environment == 'development';
 
   // Check if environment variables are loaded
-  static bool get isInitialized => dotenv.dotenv.isInitialized;
+  static bool get isInitialized => _initialized;
 }

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/secure_config.dart';
 import '../utils/app_colors.dart';
+import '../utils/error_handler.dart';
+import '../utils/loading_state_manager.dart';
 import '../widgets/message_overlay.dart';
 
 class NetworkSelectionScreen extends StatefulWidget {
@@ -10,11 +14,11 @@ class NetworkSelectionScreen extends StatefulWidget {
   State<NetworkSelectionScreen> createState() => _NetworkSelectionScreenState();
 }
 
-class _NetworkSelectionScreenState extends State<NetworkSelectionScreen> {
+class _NetworkSelectionScreenState extends State<NetworkSelectionScreen>
+    with LoadingStateMixin {
   String _selectedNetwork = 'feedback'; // Default to feedback network
   String _feedbackNetworkUrl = '';
   String _neuralNetworkUrl = '';
-  bool _isLoading = true;
 
   @override
   void initState() {
@@ -23,29 +27,30 @@ class _NetworkSelectionScreenState extends State<NetworkSelectionScreen> {
   }
 
   Future<void> _loadNetworkSettings() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
+    await executeWithLoading(
+      'load_networks',
+      () async {
+        // Load URLs from secure configuration instead of hardcoded values
+        _feedbackNetworkUrl = SecureConfig.instance.feedbackApiUrl;
+        _neuralNetworkUrl = SecureConfig.instance.neuralNetworkApiUrl;
 
-      setState(() {
-        _feedbackNetworkUrl = 'http://143.179.147.112:5009';
-        _neuralNetworkUrl = 'http://143.179.147.112:5010';
+        final prefs = await SharedPreferences.getInstance();
         _selectedNetwork = prefs.getString('selected_network') ?? 'feedback';
-        _isLoading = false;
-      });
 
-      // Update the environment configuration based on selected network
-      await _updateActiveNetwork();
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (mounted) {
-        MessageOverlay.showError(
-          context,
-          message: 'Failed to load network settings: $e',
+        // Update the environment configuration based on selected network
+        await _updateActiveNetwork();
+      },
+      loadingMessage: 'Loading network configuration...',
+      onError: (error) {
+        context.handleError(
+          AppError.storage(
+            'Failed to load network settings',
+            technicalDetails: error,
+            userAction: 'Please check your network configuration in settings.',
+          ),
         );
-      }
-    }
+      },
+    );
   }
 
   Future<void> _updateActiveNetwork() async {
@@ -63,146 +68,174 @@ class _NetworkSelectionScreenState extends State<NetworkSelectionScreen> {
 
       await prefs.setString('selected_network', _selectedNetwork);
     } catch (e) {
-      if (mounted) {
-        MessageOverlay.showError(
-          context,
-          message: 'Failed to update network settings: $e',
-        );
-      }
+      context.handleError(
+        AppError.storage(
+          'Failed to update network settings',
+          technicalDetails: e.toString(),
+          userAction: 'Please try again or restart the app.',
+        ),
+      );
     }
   }
 
   Future<void> _switchNetwork(String networkType) async {
-    setState(() {
-      _selectedNetwork = networkType;
-    });
+    await executeWithLoading(
+      'switch_network',
+      () async {
+        setState(() {
+          _selectedNetwork = networkType;
+        });
 
-    await _updateActiveNetwork();
+        await _updateActiveNetwork();
 
-    if (mounted) {
-      final networkName =
-          networkType == 'feedback' ? 'Feedback Network' : 'Neural Network';
-      MessageOverlay.showSuccess(context, message: 'Switched to $networkName');
-    }
+        if (mounted) {
+          final networkName =
+              networkType == 'feedback' ? 'Feedback Network' : 'Neural Network';
+          MessageOverlay.showSuccess(
+            context,
+            message: 'Switched to $networkName',
+          );
+        }
+      },
+      type: LoadingType.save,
+      loadingMessage: 'Switching network...',
+      onError: (error) {
+        context.handleError(
+          AppError.network(
+            'Failed to switch network',
+            technicalDetails: error,
+            userAction:
+                'Please check your network configuration and try again.',
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Network Selection')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Network Selection'), centerTitle: true),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Select Active Network',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Choose which network to use for workout predictions and feedback.',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 32),
-
-            // Feedback Network Card
-            _buildNetworkCard(
-              title: 'Feedback Network',
-              subtitle: 'Advanced feedback-based prediction system',
-              ipAddress: _feedbackNetworkUrl,
-              networkType: 'feedback',
-              icon: Icons.feedback,
-              isSelected: _selectedNetwork == 'feedback',
-            ),
-
-            const SizedBox(height: 16),
-
-            // Neural Network Card
-            _buildNetworkCard(
-              title: 'Neural Network',
-              subtitle: 'Traditional neural network prediction model',
-              ipAddress: _neuralNetworkUrl,
-              networkType: 'neural',
-              icon: Icons.psychology,
-              isSelected: _selectedNetwork == 'neural',
-            ),
-
-            const SizedBox(height: 32),
-
-            // Current Selection Info
-            Container(
-              width: double.infinity,
+    return Consumer<LoadingStateManager>(
+      builder: (context, loadingManager, child) {
+        return LoadingOverlay(
+          loadingState: loadingManager.getLoadingState('load_networks'),
+          child: Scaffold(
+            appBar: AppBar(title: const Text('Network Selection')),
+            body: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Current Selection',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    'Select Active Network',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    _selectedNetwork == 'feedback'
-                        ? 'Feedback Network is currently active'
-                        : 'Neural Network is currently active',
-                    style: const TextStyle(fontSize: 14),
+                  const Text(
+                    'Choose which network to use for workout predictions and feedback.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Active URL: ${_selectedNetwork == 'feedback' ? _feedbackNetworkUrl : _neuralNetworkUrl}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      fontFamily: 'monospace',
+                  const SizedBox(height: 32),
+
+                  // Feedback Network Card
+                  _buildNetworkCard(
+                    title: 'Feedback Network',
+                    subtitle: 'Advanced feedback-based prediction system',
+                    url: _feedbackNetworkUrl,
+                    networkType: 'feedback',
+                    icon: Icons.feedback,
+                    isSelected: _selectedNetwork == 'feedback',
+                    loadingManager: loadingManager,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Neural Network Card
+                  _buildNetworkCard(
+                    title: 'Neural Network',
+                    subtitle: 'Traditional neural network prediction model',
+                    url: _neuralNetworkUrl,
+                    networkType: 'neural',
+                    icon: Icons.psychology,
+                    isSelected: _selectedNetwork == 'neural',
+                    loadingManager: loadingManager,
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Current Selection Info
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Current Selection',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _selectedNetwork == 'feedback'
+                              ? 'Feedback Network is currently active'
+                              : 'Neural Network is currently active',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Active URL: ${_selectedNetwork == 'feedback' ? _feedbackNetworkUrl : _neuralNetworkUrl}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildNetworkCard({
     required String title,
     required String subtitle,
-    required String ipAddress,
+    required String url,
     required String networkType,
     required IconData icon,
     required bool isSelected,
+    required LoadingStateManager loadingManager,
   }) {
+    final isLoading = loadingManager.isLoading('switch_network');
+
     return Card(
       elevation: isSelected ? 4 : 2,
       child: InkWell(
-        onTap: () => _switchNetwork(networkType),
+        onTap: isLoading ? null : () => _switchNetwork(networkType),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -296,7 +329,7 @@ class _NetworkSelectionScreenState extends State<NetworkSelectionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'IP Address:',
+                      'URL:',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -304,10 +337,11 @@ class _NetworkSelectionScreenState extends State<NetworkSelectionScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      ipAddress,
-                      style: const TextStyle(
+                      url.isNotEmpty ? url : 'Not configured',
+                      style: TextStyle(
                         fontSize: 14,
                         fontFamily: 'monospace',
+                        color: url.isNotEmpty ? null : Colors.red,
                       ),
                     ),
                   ],

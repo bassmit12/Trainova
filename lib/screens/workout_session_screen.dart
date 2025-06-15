@@ -517,18 +517,21 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   // Build a single set row with weight, reps, and RIR input
   Widget _buildSetRow(WorkoutSet set, Color textColor) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    
+
     // Theme-aware colors for input fields
-    final inputFillColor = themeProvider.isDarkMode 
-        ? AppColors.darkCardBackground.withOpacity(0.8)
-        : Colors.grey.shade100;
-    final labelColor = themeProvider.isDarkMode 
-        ? AppColors.darkTextSecondary
-        : Colors.grey.shade600;
-    final hintColor = themeProvider.isDarkMode 
-        ? AppColors.darkTextSecondary.withOpacity(0.6)
-        : Colors.grey.shade400;
-    
+    final inputFillColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkCardBackground.withOpacity(0.8)
+            : Colors.grey.shade100;
+    final labelColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary
+            : Colors.grey.shade600;
+    final hintColor =
+        themeProvider.isDarkMode
+            ? AppColors.darkTextSecondary.withOpacity(0.6)
+            : Colors.grey.shade400;
+
     final weightController = TextEditingController(
       text: set.weight > 0 ? set.weight.toString() : '',
     );
@@ -573,8 +576,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                       color:
                           set.isCompleted
                               ? AppColors.primary
-                              : (themeProvider.isDarkMode 
-                                  ? AppColors.darkCardBackground.withOpacity(0.7)
+                              : (themeProvider.isDarkMode
+                                  ? AppColors.darkCardBackground.withOpacity(
+                                    0.7,
+                                  )
                                   : Colors.grey.shade200),
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -584,7 +589,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                         color:
                             set.isCompleted
                                 ? Colors.white
-                                : (themeProvider.isDarkMode 
+                                : (themeProvider.isDarkMode
                                     ? AppColors.darkTextSecondary
                                     : Colors.grey.shade700),
                         fontWeight: FontWeight.w500,
@@ -823,10 +828,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                             borderSide: BorderSide.none,
                           ),
                           hintText: '0-5',
-                          hintStyle: TextStyle(
-                            color: hintColor,
-                            fontSize: 16,
-                          ),
+                          hintStyle: TextStyle(color: hintColor, fontSize: 16),
                         ),
                         onChanged: (value) {
                           final rir = int.tryParse(value);

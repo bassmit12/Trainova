@@ -303,8 +303,8 @@ class WorkoutSessionService extends ChangeNotifier {
       }
     }
 
-    // In a real app, also fetch from online database (Supabase)
-    // This implementation uses just local storage for simplicity
+    // Fetch from Supabase for cross-device sync
+    // Currently using local storage with plans for cloud sync
   }
 
   // Save session history to storage

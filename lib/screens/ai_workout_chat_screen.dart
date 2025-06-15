@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
-import '../models/chat_message.dart';
+import '../models/chat_message.dart' as chat;
 import '../models/workout.dart';
 import '../providers/workout_chat_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
+import '../widgets/message_overlay.dart';
 import 'workout_details_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -230,37 +231,25 @@ class _AIWorkoutChatScreenState extends State<AIWorkoutChatScreen> {
                                           await chatProvider
                                               .saveLastGeneratedWorkout();
                                       if (workout != null && mounted) {
-                                        ScaffoldMessenger.of(
+                                        // Show custom toast notification
+                                        MessageOverlay.showSuccess(
                                           context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
+                                          message:
                                               '${workout.name} saved to your workouts!',
-                                            ),
-                                            backgroundColor: AppColors.primary,
-                                            behavior: SnackBarBehavior.floating,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            margin: const EdgeInsets.all(12),
-                                            action: SnackBarAction(
-                                              label: 'View',
-                                              textColor: Colors.white,
-                                              onPressed: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder:
-                                                        (context) =>
-                                                            WorkoutDetailsScreen(
-                                                              workout: workout,
-                                                            ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
+                                          duration: const Duration(seconds: 4),
+                                          actionLabel: 'View',
+                                          onAction: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (context) =>
+                                                        WorkoutDetailsScreen(
+                                                          workout: workout,
+                                                        ),
+                                              ),
+                                            );
+                                          },
                                         );
                                       }
                                     },
@@ -375,13 +364,13 @@ class _AIWorkoutChatScreenState extends State<AIWorkoutChatScreen> {
   }
 
   Widget _buildMessageBubble(
-    ChatMessage message,
+    chat.ChatMessage message,
     bool isDarkMode,
     Color textColor,
   ) {
-    final isAI = message.type == MessageType.ai;
-    final isLoading = message.type == MessageType.loading;
-    final isError = message.type == MessageType.error;
+    final isAI = message.type == chat.MessageType.ai;
+    final isLoading = message.type == chat.MessageType.loading;
+    final isError = message.type == chat.MessageType.error;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),

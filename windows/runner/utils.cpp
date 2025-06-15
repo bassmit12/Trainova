@@ -7,17 +7,56 @@
 
 #include <iostream>
 
+// Static flag to track if console has been created
+static bool g_console_created = false;
+
 void CreateAndAttachConsole() {
+  // Skip if already created to avoid redundant work
+  if (g_console_created) {
+    return;
+  }
+
+  // Only create console in debug mode or when explicitly needed
+  #ifdef _DEBUG
+  bool should_create_console = true;
+  #else
+  bool should_create_console = ::IsDebuggerPresent();
+  #endif
+
+  if (!should_create_console) {
+    g_console_created = true; // Mark as handled
+    return;
+  }
+
+  // Try to attach to existing console first (more efficient)
+  if (::AttachConsole(ATTACH_PARENT_PROCESS)) {
+    g_console_created = true;
+    return;
+  }
+
+  // Only allocate new console if attach failed and we really need it
   if (::AllocConsole()) {
     FILE *unused;
-    if (freopen_s(&unused, "CONOUT$", "w", stdout)) {
-      _dup2(_fileno(stdout), 1);
+    
+    // Batch the file operations to reduce system calls
+    bool stdout_redirected = (freopen_s(&unused, "CONOUT$", "w", stdout) == 0);
+    bool stderr_redirected = (freopen_s(&unused, "CONOUT$", "w", stderr) == 0);
+    
+    // Only sync if redirections were successful
+    if (stdout_redirected || stderr_redirected) {
+      if (stdout_redirected) {
+        _dup2(_fileno(stdout), 1);
+      }
+      if (stderr_redirected) {
+        _dup2(_fileno(stdout), 2);
+      }
+      
+      // Perform sync operations only once
+      std::ios::sync_with_stdio();
+      FlutterDesktopResyncOutputStreams();
     }
-    if (freopen_s(&unused, "CONOUT$", "w", stderr)) {
-      _dup2(_fileno(stdout), 2);
-    }
-    std::ios::sync_with_stdio();
-    FlutterDesktopResyncOutputStreams();
+    
+    g_console_created = true;
   }
 }
 

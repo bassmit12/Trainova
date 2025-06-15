@@ -65,6 +65,11 @@ class UserModel {
     );
   }
 
+  // Factory constructor for Map data (alias for fromJson for consistency)
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel.fromJson(map);
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

@@ -2,12 +2,12 @@ import 'dart:math';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../config/secure_config.dart';
 
 import '../models/weight_prediction.dart';
 import '../models/workout_set.dart';
 import '../models/exercise.dart';
 import '../config/api_config.dart';
-import '../config/env_config.dart';
 import '../services/workout_history_service.dart';
 
 class ProgressiveOverloadService {
@@ -16,8 +16,8 @@ class ProgressiveOverloadService {
   final WorkoutHistoryService _historyService = WorkoutHistoryService();
 
   ProgressiveOverloadService({String? apiUrl, String? feedbackApiUrl})
-    : baseUrl = apiUrl ?? EnvConfig.neuralNetworkApiUrl,
-      feedbackUrl = feedbackApiUrl ?? EnvConfig.feedbackApiUrl;
+    : baseUrl = apiUrl ?? SecureConfig.instance.neuralNetworkApiUrl,
+      feedbackUrl = feedbackApiUrl ?? SecureConfig.instance.feedbackApiUrl;
 
   /// Fetches a weight prediction for the next workout
   Future<WeightPrediction> predictNextWeight({

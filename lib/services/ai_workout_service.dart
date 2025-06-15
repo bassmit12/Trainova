@@ -5,12 +5,12 @@ import 'package:uuid/uuid.dart';
 import '../models/chat_message.dart';
 import '../models/exercise.dart';
 import '../models/workout.dart';
-import '../config/env_config.dart';
+import '../config/secure_config.dart';
 
 class AIWorkoutService {
-  // Using the Gemini API configuration from EnvConfig
-  static String get _apiUrl => EnvConfig.geminiApiUrl;
-  static String get _apiKey => EnvConfig.geminiApiKey;
+  // Using the SecureConfig for better configuration management
+  static String get _apiUrl => SecureConfig.instance.geminiApiUrl;
+  static String get _apiKey => SecureConfig.instance.geminiApiKey;
 
   // Determine if a prompt is likely requesting a workout
   static bool isWorkoutRequest(String prompt) {
@@ -33,6 +33,10 @@ class AIWorkoutService {
       'muscle',
       'body',
       'train',
+      'create',
+      'generate',
+      'build',
+      'design',
     ];
 
     final lowerPrompt = prompt.toLowerCase();
@@ -52,13 +56,13 @@ class AIWorkoutService {
     try {
       debugPrint('Making conversation request to Gemini API: $prompt');
 
-      // Check if environment is properly initialized
-      if (!EnvConfig.isInitialized) {
-        return 'Environment configuration not initialized. Please restart the app.';
-      }
-
-      if (_apiKey.isEmpty) {
-        return 'API key not found in environment configuration.';
+      // Check if Gemini is properly configured
+      if (!SecureConfig.instance.isGeminiConfigured) {
+        return 'I\'m sorry, but the AI chat service is not configured yet. To enable chat functionality:\n\n'
+            '1. Get a free API key from: https://makersuite.google.com/app/apikey\n'
+            '2. Go to Settings → API Settings in the app\n'
+            '3. Add your Gemini API key\n\n'
+            'Your neural network and feedback systems are working fine for workout predictions!';
       }
 
       final queryParams = {'key': _apiKey};
@@ -83,11 +87,13 @@ User: ${prompt}
         "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1024},
       };
 
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(requestBody),
+          )
+          .timeout(Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
@@ -106,10 +112,20 @@ User: ${prompt}
         return content;
       } else {
         debugPrint('API error: ${response.statusCode} - ${response.body}');
+        if (response.statusCode == 401) {
+          return 'Authentication failed. Please check your API key configuration.';
+        } else if (response.statusCode == 403) {
+          return 'Access denied. Please verify your API key permissions.';
+        } else if (response.statusCode == 429) {
+          return 'Rate limit exceeded. Please try again in a moment.';
+        }
         return 'Sorry, I had a technical issue. Please try again in a moment.';
       }
     } catch (e) {
       debugPrint('Exception during conversation API call: $e');
+      if (e.toString().contains('TimeoutException')) {
+        return 'Request timed out. Please check your connection and try again.';
+      }
       return 'Sorry, I encountered an error. Please try again.';
     }
   }
@@ -121,14 +137,17 @@ User: ${prompt}
     final id = DateTime.now().millisecondsSinceEpoch.toString();
 
     try {
-      // Load the API key from environment configuration
-      final _apiKey = EnvConfig.geminiApiKey;
-
-      if (_apiKey.isEmpty) {
+      // Check if Gemini is properly configured
+      if (!SecureConfig.instance.isGeminiConfigured) {
         return WorkoutGenerationResponse(
           id: id,
           prompt: prompt,
-          errorMessage: 'API key not found in environment configuration.',
+          errorMessage:
+              'AI chat service is not configured yet. To enable workout generation:\n\n'
+              '1. Get a free API key from: https://makersuite.google.com/app/apikey\n'
+              '2. Go to Settings → API Settings in the app\n'
+              '3. Add your Gemini API key\n\n'
+              'Meanwhile, you can still use the neural network predictions for your workouts!',
         );
       }
 
@@ -183,11 +202,13 @@ User request: ${prompt}
       print('Prompt: $prompt');
       print('Timestamp: ${DateTime.now().toIso8601String()}');
 
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(requestBody),
+          )
+          .timeout(Duration(seconds: 45));
 
       // Log the response
       print('=== AI WORKOUT GENERATION RESPONSE (Gemini) ===');
@@ -249,23 +270,8 @@ User request: ${prompt}
           print('Workout Name: ${workoutData['name']}');
           print('Type: ${workoutData['type']}');
           print('Duration: ${workoutData['duration']}');
-          print('Difficulty: ${workoutData['difficulty']}');
-          print('Calories: ${workoutData['calories_burned']}');
-          print('Exercise Count: ${workoutData['exercises']?.length ?? 0}');
-          if (workoutData['exercises'] != null) {
-            final exercises = workoutData['exercises'] as List;
-            for (int i = 0; i < exercises.length; i++) {
-              final exercise = exercises[i];
-              print(
-                'Exercise ${i + 1}: ${exercise['name']} - ${exercise['sets']} sets x ${exercise['reps']} reps',
-              );
-            }
-          }
+          print('Exercises: ${workoutData['exercises']?.length ?? 0}');
           print('===============================================');
-
-          debugPrint(
-            'Successfully parsed workout data with ${workoutData['exercises']?.length ?? 0} exercises',
-          );
 
           return WorkoutGenerationResponse(
             id: id,
@@ -289,23 +295,46 @@ User request: ${prompt}
         print('Status Code: ${response.statusCode}');
         print('Response: ${response.body}');
         print('===============================================');
-        debugPrint('API error: ${response.statusCode} - ${response.body}');
+
+        String errorMessage = 'API error (${response.statusCode})';
+        if (response.statusCode == 401) {
+          errorMessage =
+              'Authentication failed. Please check your Gemini API key.';
+        } else if (response.statusCode == 403) {
+          errorMessage =
+              'Access denied. Please verify your API key permissions.';
+        } else if (response.statusCode == 429) {
+          errorMessage = 'Rate limit exceeded. Please try again in a moment.';
+        } else {
+          errorMessage =
+              '${errorMessage}: ${_extractErrorMessage(response.body)}';
+        }
+
         return WorkoutGenerationResponse(
           id: id,
           prompt: prompt,
-          errorMessage:
-              'API error (${response.statusCode}): ${_extractErrorMessage(response.body)}',
+          errorMessage: errorMessage,
         );
       }
     } catch (e) {
       print('=== AI WORKOUT GENERATION EXCEPTION (Gemini) ===');
       print('Exception: $e');
       print('===============================================');
-      debugPrint('Exception during API call: $e');
+
+      String errorMessage = 'Connection error';
+      if (e.toString().contains('TimeoutException')) {
+        errorMessage =
+            'Request timed out. Please check your connection and try again.';
+      } else if (e.toString().contains('SocketException')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else {
+        errorMessage = 'Connection error: ${e.toString()}';
+      }
+
       return WorkoutGenerationResponse(
         id: id,
         prompt: prompt,
-        errorMessage: 'Connection error: ${e.toString()}',
+        errorMessage: errorMessage,
       );
     }
   }
