@@ -129,25 +129,77 @@ class AuthService extends ChangeNotifier {
         }
 
         print('Google SignIn: Successfully retrieved tokens');
+
+        // Add debugging for the auth request
+        print('Supabase: Attempting to sign in with Google tokens...');
+        print('Supabase: Using project URL: ${SupabaseConfig.supabaseUrl}');
+
         // Sign in to Supabase with the Google token
-        final response = await _client.auth.signInWithIdToken(
-          provider: OAuthProvider.google,
-          idToken: idToken,
-          accessToken: accessToken,
-        );
-
-        // Update current user from the response
-        if (response.user != null) {
-          print('Supabase: Successfully signed in with Google token');
-          _currentUser = UserModel.fromJson(response.user!.toJson());
-          notifyListeners();
-
-          // Fetch the complete profile data
-          await getCurrentUserProfile();
-        } else {
-          print(
-            'Supabase: Failed to sign in with Google token - no user returned',
+        try {
+          final response = await _client.auth.signInWithIdToken(
+            provider: OAuthProvider.google,
+            idToken: idToken,
+            accessToken: accessToken,
           );
+
+          // Update current user from the response
+          if (response.user != null) {
+            print('Supabase: Successfully signed in with Google token');
+            _currentUser = UserModel.fromJson(response.user!.toJson());
+            notifyListeners();
+
+            // Fetch the complete profile data
+            await getCurrentUserProfile();
+          } else {
+            print(
+              'Supabase: Failed to sign in with Google token - no user returned',
+            );
+          }
+        } catch (authError) {
+          print('Supabase: Auth error details:');
+          print('Error type: ${authError.runtimeType}');
+          print('Error message: ${authError.toString()}');
+          if (authError is AuthException) {
+            print('Status code: ${authError.statusCode}');
+          }
+
+          // Check if this is a Google OAuth configuration issue
+          if (authError.toString().contains('Project not specified')) {
+            print('Supabase: Google OAuth configuration issue detected');
+            print(
+              'Supabase: This usually means Google OAuth is not properly configured in Supabase',
+            );
+            print(
+              'Supabase: Please check Authentication > Providers > Google in your Supabase dashboard',
+            );
+
+            // For now, create a basic user without full Supabase auth
+            // This is a temporary workaround until Google OAuth is properly configured
+            final googleSignIn = GoogleSignIn(
+              scopes: ['email', 'profile'],
+              clientId:
+                  kDebugMode
+                      ? SupabaseConfig.googleClientIdAndroidDebug
+                      : SupabaseConfig.googleClientIdAndroidRelease,
+              serverClientId: SupabaseConfig.googleClientIdWeb,
+            );
+
+            final googleUser = googleSignIn.currentUser;
+            if (googleUser != null) {
+              _currentUser = UserModel(
+                id: googleUser.id,
+                email: googleUser.email,
+                name: googleUser.displayName ?? 'User',
+                avatarUrl: googleUser.photoUrl,
+                isProfileComplete: false,
+              );
+              notifyListeners();
+              print('Supabase: Created temporary user profile');
+              return _currentUser;
+            }
+          }
+
+          rethrow;
         }
 
         return _currentUser;
@@ -171,15 +223,41 @@ class AuthService extends ChangeNotifier {
   Future<UserModel?> getCurrentUserProfile({bool forceRefresh = false}) async {
     try {
       final userId = _client.auth.currentUser?.id;
-      if (userId == null) return null;
+      if (userId == null) {
+        print('getCurrentUserProfile: No user ID found');
+        return null;
+      }
 
-      // Force a fresh fetch from Supabase when forceRefresh is true
-      // Note: Supabase Flutter doesn't support headers in single() method, use maybeSingle() instead
-      final query = _client.from('profiles').select().eq('id', userId);
-      final response = await query.maybeSingle();
+      print('getCurrentUserProfile: Fetching profile for user: $userId');
+
+      // Add a small delay to ensure Supabase is fully ready
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Try a simpler query approach first
+      print('getCurrentUserProfile: Executing query...');
+      List<Map<String, dynamic>> profileData;
+      try {
+        profileData = await _client
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .limit(1);
+      } catch (e) {
+        print('getCurrentUserProfile: Query failed with error: $e');
+        // If query fails, try to reconnect Supabase
+        await _reinitializeSupabase();
+        profileData = await _client
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .limit(1);
+      }
+
+      print('getCurrentUserProfile: Query response: $profileData');
 
       // Check if profile exists
-      if (response == null || response.isEmpty) {
+      if (profileData.isEmpty) {
+        print('getCurrentUserProfile: No profile found, creating one...');
         // Create a basic profile if it doesn't exist
         await _client.from('profiles').upsert({
           'id': userId,
@@ -191,14 +269,13 @@ class AuthService extends ChangeNotifier {
         });
 
         // Fetch again after creating
-        final newResponse =
-            await _client
-                .from('profiles')
-                .select()
-                .eq('id', userId)
-                .maybeSingle();
+        final newProfileData = await _client
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .limit(1);
 
-        if (newResponse != null) {
+        if (newProfileData.isNotEmpty) {
           // Create a new map for merging
           Map<String, dynamic> mergedData = {};
 
@@ -208,11 +285,15 @@ class AuthService extends ChangeNotifier {
           }
 
           // Add the response data
-          mergedData.addAll(newResponse as Map<String, dynamic>);
+          mergedData.addAll(newProfileData.first);
 
           _currentUser = UserModel.fromJson(mergedData);
+          print(
+            'getCurrentUserProfile: Profile created and loaded successfully',
+          );
         }
       } else {
+        print('getCurrentUserProfile: Profile found, merging data...');
         // Use existing profile data
         // Create a new map for merging
         Map<String, dynamic> mergedData = {};
@@ -223,9 +304,10 @@ class AuthService extends ChangeNotifier {
         }
 
         // Add the response data
-        mergedData.addAll(response as Map<String, dynamic>);
+        mergedData.addAll(profileData.first);
 
         _currentUser = UserModel.fromJson(mergedData);
+        print('getCurrentUserProfile: Profile loaded successfully');
       }
 
       // Debug log current user data
@@ -239,7 +321,24 @@ class AuthService extends ChangeNotifier {
       return _currentUser;
     } catch (e) {
       print('Error getting user profile: $e');
+      print('Error type: ${e.runtimeType}');
+      print('Stack trace: ${StackTrace.current}');
       return _currentUser;
+    }
+  }
+
+  // Helper method to reinitialize Supabase connection
+  Future<void> _reinitializeSupabase() async {
+    print('Reinitializing Supabase connection...');
+    try {
+      await Supabase.initialize(
+        url: SupabaseConfig.supabaseUrl,
+        anonKey: SupabaseConfig.supabaseAnonKey,
+        debug: true,
+      );
+      print('Supabase reinitialized successfully');
+    } catch (e) {
+      print('Failed to reinitialize Supabase: $e');
     }
   }
 

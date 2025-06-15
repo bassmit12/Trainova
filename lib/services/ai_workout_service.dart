@@ -118,26 +118,13 @@ User: ${prompt}
   static Future<WorkoutGenerationResponse> generateWorkout(
     String prompt,
   ) async {
-    final uuid = Uuid();
-    final id = uuid.v4();
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
 
     try {
-      debugPrint('Making request to Gemini API for prompt: $prompt');
-      debugPrint('API URL: $_apiUrl');
-
-      // Check if environment is properly initialized
-      if (!EnvConfig.isInitialized) {
-        debugPrint('Environment variables not initialized');
-        return WorkoutGenerationResponse(
-          id: id,
-          prompt: prompt,
-          errorMessage:
-              'Environment configuration not initialized. Please restart the app.',
-        );
-      }
+      // Load the API key from environment configuration
+      final _apiKey = EnvConfig.geminiApiKey;
 
       if (_apiKey.isEmpty) {
-        debugPrint('API key is empty');
         return WorkoutGenerationResponse(
           id: id,
           prompt: prompt,
@@ -187,7 +174,14 @@ User request: ${prompt}
         "generationConfig": {"temperature": 0.7, "maxOutputTokens": 2048},
       };
 
-      debugPrint('Request body: ${jsonEncode(requestBody)}');
+      // Log the workout generation request
+      print('=== AI WORKOUT GENERATION REQUEST (Gemini) ===');
+      print(
+        'URL: ${uri.toString().replaceAll(RegExp(r'key=[^&]*'), 'key=***HIDDEN***')}',
+      );
+      print('Request Body: ${jsonEncode(requestBody)}');
+      print('Prompt: $prompt');
+      print('Timestamp: ${DateTime.now().toIso8601String()}');
 
       final response = await http.post(
         uri,
@@ -195,11 +189,13 @@ User request: ${prompt}
         body: jsonEncode(requestBody),
       );
 
-      debugPrint('Response status code: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
+      // Log the response
+      print('=== AI WORKOUT GENERATION RESPONSE (Gemini) ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('Timestamp: ${DateTime.now().toIso8601String()}');
 
       if (response.statusCode == 200) {
-        debugPrint('Successful response from Gemini API');
         final jsonResponse = jsonDecode(response.body);
 
         // Check if the response has the expected structure
@@ -208,22 +204,31 @@ User request: ${prompt}
             jsonResponse['candidates'][0]['content'] == null ||
             jsonResponse['candidates'][0]['content']['parts'] == null ||
             jsonResponse['candidates'][0]['content']['parts'].isEmpty) {
-          debugPrint('Unexpected API response structure: ${response.body}');
+          print('=== AI WORKOUT GENERATION ERROR (Gemini) ===');
+          print('Error: Invalid response structure');
+          print('===============================================');
+
           return WorkoutGenerationResponse(
             id: id,
             prompt: prompt,
-            errorMessage: 'Unexpected API response structure',
+            errorMessage:
+                'Received invalid response from AI. Please try again.',
           );
         }
 
         final content =
             jsonResponse['candidates'][0]['content']['parts'][0]['text'];
-        debugPrint('Gemini Response content: $content');
+
+        // Log the raw AI response content
+        print('=== AI WORKOUT GENERATION RAW CONTENT (Gemini) ===');
+        print('Content: $content');
+        print('===============================================');
 
         try {
-          // Extract JSON from the response content
-          // This handles both cases where the AI returns pure JSON or JSON embedded in markdown
-          final jsonMatch = RegExp(r'{.*}', dotAll: true).firstMatch(content);
+          // Extract JSON from the response using regex
+          final jsonRegex = RegExp(r'\{[\s\S]*\}');
+          final jsonMatch = jsonRegex.firstMatch(content);
+
           if (jsonMatch == null) {
             debugPrint('Could not extract JSON from AI response');
             return WorkoutGenerationResponse(
@@ -238,6 +243,26 @@ User request: ${prompt}
           debugPrint('Extracted JSON: $jsonContent');
 
           final Map<String, dynamic> workoutData = jsonDecode(jsonContent!);
+
+          // Log the parsed workout data
+          print('=== PARSED WORKOUT DATA (Gemini) ===');
+          print('Workout Name: ${workoutData['name']}');
+          print('Type: ${workoutData['type']}');
+          print('Duration: ${workoutData['duration']}');
+          print('Difficulty: ${workoutData['difficulty']}');
+          print('Calories: ${workoutData['calories_burned']}');
+          print('Exercise Count: ${workoutData['exercises']?.length ?? 0}');
+          if (workoutData['exercises'] != null) {
+            final exercises = workoutData['exercises'] as List;
+            for (int i = 0; i < exercises.length; i++) {
+              final exercise = exercises[i];
+              print(
+                'Exercise ${i + 1}: ${exercise['name']} - ${exercise['sets']} sets x ${exercise['reps']} reps',
+              );
+            }
+          }
+          print('===============================================');
+
           debugPrint(
             'Successfully parsed workout data with ${workoutData['exercises']?.length ?? 0} exercises',
           );
@@ -248,6 +273,9 @@ User request: ${prompt}
             generatedWorkout: workoutData,
           );
         } catch (e) {
+          print('=== AI WORKOUT GENERATION PARSE ERROR (Gemini) ===');
+          print('Parse Error: $e');
+          print('===============================================');
           debugPrint('Error parsing AI response: $e');
           return WorkoutGenerationResponse(
             id: id,
@@ -257,6 +285,10 @@ User request: ${prompt}
           );
         }
       } else {
+        print('=== AI WORKOUT GENERATION API ERROR (Gemini) ===');
+        print('Status Code: ${response.statusCode}');
+        print('Response: ${response.body}');
+        print('===============================================');
         debugPrint('API error: ${response.statusCode} - ${response.body}');
         return WorkoutGenerationResponse(
           id: id,
@@ -266,6 +298,9 @@ User request: ${prompt}
         );
       }
     } catch (e) {
+      print('=== AI WORKOUT GENERATION EXCEPTION (Gemini) ===');
+      print('Exception: $e');
+      print('===============================================');
       debugPrint('Exception during API call: $e');
       return WorkoutGenerationResponse(
         id: id,

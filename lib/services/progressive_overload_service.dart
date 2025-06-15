@@ -15,12 +15,9 @@ class ProgressiveOverloadService {
   final String feedbackUrl;
   final WorkoutHistoryService _historyService = WorkoutHistoryService();
 
-  ProgressiveOverloadService({
-    String? apiUrl,
-    String? feedbackApiUrl,
-  }) : 
-    baseUrl = apiUrl ?? EnvConfig.neuralNetworkApiUrl,
-    feedbackUrl = feedbackApiUrl ?? EnvConfig.feedbackApiUrl;
+  ProgressiveOverloadService({String? apiUrl, String? feedbackApiUrl})
+    : baseUrl = apiUrl ?? EnvConfig.neuralNetworkApiUrl,
+      feedbackUrl = feedbackApiUrl ?? EnvConfig.feedbackApiUrl;
 
   /// Fetches a weight prediction for the next workout
   Future<WeightPrediction> predictNextWeight({
@@ -33,28 +30,59 @@ class ProgressiveOverloadService {
     try {
       final url = '$baseUrl/api/predict';
 
+      final requestBody = {
+        'user_id': userId,
+        'exercise': exercise,
+        'previous_weights': previousWeights,
+        'days_since_workouts': daysSinceWorkouts,
+        'sets': sets, // Include sets in API request
+      };
+
+      // Log the prediction request
+      print('=== AI PREDICTION REQUEST (Neural Network) ===');
+      print('URL: $url');
+      print('Request Body: ${jsonEncode(requestBody)}');
+      print('Timestamp: ${DateTime.now().toIso8601String()}');
+
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'user_id': userId,
-          'exercise': exercise,
-          'previous_weights': previousWeights,
-          'days_since_workouts': daysSinceWorkouts,
-          'sets': sets, // Include sets in API request
-        }),
+        body: jsonEncode(requestBody),
       );
+
+      // Log the response
+      print('=== AI PREDICTION RESPONSE (Neural Network) ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('Timestamp: ${DateTime.now().toIso8601String()}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return WeightPrediction.fromJson(data);
+        final prediction = WeightPrediction.fromJson(data);
+
+        // Log the parsed prediction
+        print('=== PARSED PREDICTION (Neural Network) ===');
+        print('Predicted Weight: ${prediction.predictedWeight}');
+        print('Confidence: ${prediction.confidence}');
+        print('Suggested Reps: ${prediction.suggestedReps}');
+        print('Suggested Sets: ${prediction.suggestedSets}');
+        print('Message: ${prediction.message}');
+        print('===============================================');
+
+        return prediction;
       } else {
         final error = jsonDecode(response.body);
+        print('=== AI PREDICTION ERROR (Neural Network) ===');
+        print('Error: ${error['detail'] ?? 'Unknown error'}');
+        print('===============================================');
         throw Exception(
           'Failed to predict weight: ${error['detail'] ?? 'Unknown error'}',
         );
       }
     } catch (e) {
+      print('=== AI PREDICTION EXCEPTION (Neural Network) ===');
+      print('Exception: $e');
+      print('===============================================');
       throw Exception('Failed to connect to Progressive Overload API: $e');
     }
   }
@@ -132,11 +160,14 @@ class ProgressiveOverloadService {
 
       try {
         // Use the feedback-based prediction system
-        final prediction = await getFeedbackPrediction(exerciseId, exerciseSets);
+        final prediction = await getFeedbackPrediction(
+          exerciseId,
+          exerciseSets,
+        );
         if (prediction != null) {
           return prediction;
         }
-        
+
         // Fall back to simple prediction if API fails
         return _createSimplePrediction(exerciseSets);
       } catch (e) {
@@ -248,66 +279,60 @@ class ProgressiveOverloadService {
     String exerciseId,
     List<WorkoutSet> sets,
   ) async {
+    // Use ALL workout sets for optimal prediction (no limit)
     // Get exercise information to determine number of programmed sets
     final exerciseInfo = await Exercise.fetchExercisesByIds([exerciseId]);
     final exercise = exerciseInfo[exerciseId];
     final programmedSets = exercise?.sets ?? 3; // Default to 3 if not found
 
-    // Extract weights for previous workouts
+    // Extract weights and calculate days between workouts from ALL sets
     final List<double> previousWeights = [];
-
-    // We'll assume a 7-day interval between workouts for now
-    // In a more sophisticated implementation, we'd calculate actual days between workouts
     final List<int> daysBetween = [];
 
-    // Group the sets by workout dates and add the average weight for each workout
-    final Map<String, List<WorkoutSet>> setsByWorkout = {};
+    // Sort sets by timestamp to ensure proper chronological order
+    final sortedSets = List<WorkoutSet>.from(sets);
+    sortedSets.sort((a, b) {
+      final aTime = a.timestamp ?? DateTime.now();
+      final bTime = b.timestamp ?? DateTime.now();
+      return aTime.compareTo(bTime);
+    });
 
-    for (final set in sets) {
-      // Use set ID as a proxy for workout grouping
-      // In a real implementation, we'd use actual workout dates
-      final workoutId =
-          set.id.split(
-            '-',
-          )[0]; // Just use first part of ID as workout identifier
-      if (!setsByWorkout.containsKey(workoutId)) {
-        setsByWorkout[workoutId] = [];
+    // Extract weights and calculate time differences from ALL available data
+    for (int i = 0; i < sortedSets.length; i++) {
+      previousWeights.add(sortedSets[i].weight);
+
+      if (i > 0) {
+        // Calculate days between this set and the previous one
+        final currentTime = sortedSets[i].timestamp ?? DateTime.now();
+        final previousTime = sortedSets[i - 1].timestamp ?? DateTime.now();
+        final daysDiff = currentTime.difference(previousTime).inDays;
+        daysBetween.add(daysDiff > 0 ? daysDiff : 1); // Minimum 1 day
+      } else {
+        // For the first set, assume 7 days from a previous workout
+        daysBetween.add(7);
       }
-      setsByWorkout[workoutId]!.add(set);
     }
 
-    // Sort to get most recent workouts first
-    final sortedWorkoutIds = setsByWorkout.keys.toList();
-
-    // Take the last 5 workouts (or fewer if not available)
-    for (int i = 0; i < sortedWorkoutIds.length && i < 5; i++) {
-      final workoutSets = setsByWorkout[sortedWorkoutIds[i]]!;
-
-      // Calculate average weight for this workout and add it to the list
-      final avgWeight =
-          workoutSets.map((s) => s.weight).reduce((a, b) => a + b) /
-          workoutSets.length;
-      previousWeights.add(avgWeight);
-
-      // Assume 7 days between workouts
-      daysBetween.add(7);
-    }
-
-    // Make sure lists have at least 5 elements for the API
+    // Ensure we have enough data points for the API (pad with reasonable defaults if needed)
     while (previousWeights.length < 5) {
-      // Repeat first weight if not enough history
-      previousWeights.add(previousWeights.isNotEmpty ? previousWeights[0] : 10);
-      daysBetween.add(7);
+      if (previousWeights.isNotEmpty) {
+        // Use the last weight as a fallback
+        previousWeights.add(previousWeights.last);
+        daysBetween.add(7); // Assume weekly workouts
+      } else {
+        // Default starting values
+        previousWeights.add(20.0); // 20kg default
+        daysBetween.add(7);
+      }
     }
 
-    // Call the API
+    // Call the API with ALL available workout data
     try {
       final prediction = await predictNextWeight(
         userId: 1, // Default user ID
         exercise: exerciseId,
-        previousWeights:
-            previousWeights.reversed.toList(), // Oldest first, as API expects
-        daysSinceWorkouts: daysBetween.reversed.toList(),
+        previousWeights: previousWeights,
+        daysSinceWorkouts: daysBetween,
         sets: programmedSets, // Pass the actual number of sets
       );
 
@@ -329,7 +354,7 @@ class ProgressiveOverloadService {
   }) async {
     try {
       final url = '$feedbackUrl/feedback';
-      
+
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
@@ -348,7 +373,9 @@ class ProgressiveOverloadService {
         return data;
       } else {
         final error = jsonDecode(response.body);
-        debugPrint('Failed to send feedback: ${error['detail'] ?? 'Unknown error'}');
+        debugPrint(
+          'Failed to send feedback: ${error['detail'] ?? 'Unknown error'}',
+        );
         return {'error': error['detail'] ?? 'Unknown error'};
       }
     } catch (e) {
@@ -364,40 +391,82 @@ class ProgressiveOverloadService {
   ) async {
     try {
       final url = '$feedbackUrl/predict';
-      
+
+      // Get the exercise name from the exercise ID
+      String exerciseName = exerciseId; // fallback to ID if lookup fails
+      try {
+        final exerciseInfo = await Exercise.fetchExercisesByIds([exerciseId]);
+        final exercise = exerciseInfo[exerciseId];
+        if (exercise != null) {
+          // Convert exercise name to a format the ML model expects
+          // Remove spaces, convert to lowercase, replace spaces with underscores
+          exerciseName = exercise.name.toLowerCase().replaceAll(' ', '_');
+        }
+      } catch (e) {
+        debugPrint('Error fetching exercise name: $e');
+        // Continue with exerciseId as fallback
+      }
+
+      // Use ALL previous workouts for optimal prediction (no limit)
       // Transform workout sets into the format required by feedback API
-      final List<Map<String, dynamic>> workoutData = previousWorkouts.map((set) => {
-        'exercise': exerciseId,
-        'weight': set.weight,
-        'reps': set.reps,
-        'date': set.timestamp?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        'success': true, // Assume completed sets were successful
-      }).toList();
-      
+      final List<Map<String, dynamic>> workoutData =
+          previousWorkouts
+              .map(
+                (set) => {
+                  'exercise': exerciseName, // Use exercise name instead of ID
+                  'weight': set.weight,
+                  'reps': set.reps,
+                  'date':
+                      set.timestamp?.toIso8601String() ??
+                      DateTime.now().toIso8601String(),
+                  'success': true, // Assume completed sets were successful
+                  'rir': set.rir, // Include RIR if available
+                },
+              )
+              .toList();
+
+      final requestBody = {
+        'exercise': exerciseName, // Use exercise name instead of ID
+        'previous_workouts': workoutData,
+      };
+
+      // Log the prediction request
+      print('=== AI PREDICTION REQUEST (Feedback System) ===');
+      print('URL: $url');
+      print('Request Body: ${jsonEncode(requestBody)}');
+      print('Exercise ID: $exerciseId');
+      print('Exercise Name: $exerciseName');
+      print('Total Previous Workouts Sent: ${workoutData.length}');
+      print('Timestamp: ${DateTime.now().toIso8601String()}');
+
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'exercise': exerciseId,
-          'previous_workouts': workoutData,
-        }),
+        body: jsonEncode(requestBody),
       );
+
+      // Log the response
+      print('=== AI PREDICTION RESPONSE (Feedback System) ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('Timestamp: ${DateTime.now().toIso8601String()}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         // Get suggested reps from the feedback system or use defaults
         List<int> suggestedReps;
-        if (data.containsKey('suggested_reps') && data['suggested_reps'] != null) {
+        if (data.containsKey('suggested_reps') &&
+            data['suggested_reps'] != null) {
           // Convert from dynamic list to int list
           suggestedReps = List<int>.from(data['suggested_reps']);
         } else {
           // Default rep scheme if not provided by the API
           suggestedReps = List<int>.filled(3, 8);
         }
-        
+
         // Convert feedback API response to WeightPrediction format
-        return WeightPrediction(
+        final prediction = WeightPrediction(
           predictedWeight: data['weight'].toDouble(),
           exercise: exerciseId,
           confidence: data['confidence'].toDouble(),
@@ -405,89 +474,33 @@ class ProgressiveOverloadService {
           suggestedSets: suggestedReps.length,
           message: data['message'] ?? 'Prediction from feedback-based system',
         );
+
+        // Log the parsed prediction
+        print('=== PARSED PREDICTION (Feedback System) ===');
+        print('Predicted Weight: ${prediction.predictedWeight}');
+        print('Confidence: ${prediction.confidence}');
+        print('Suggested Reps: ${prediction.suggestedReps}');
+        print('Suggested Sets: ${prediction.suggestedSets}');
+        print('Message: ${prediction.message}');
+        print('===============================================');
+
+        return prediction;
       } else {
         final error = jsonDecode(response.body);
-        debugPrint('Failed to get feedback prediction: ${error['detail'] ?? 'Unknown error'}');
+        print('=== AI PREDICTION ERROR (Feedback System) ===');
+        print('Error: ${error['detail'] ?? 'Unknown error'}');
+        print('===============================================');
+        debugPrint(
+          'Failed to get feedback prediction: ${error['detail'] ?? 'Unknown error'}',
+        );
         return null;
       }
     } catch (e) {
+      print('=== AI PREDICTION EXCEPTION (Feedback System) ===');
+      print('Exception: $e');
+      print('===============================================');
       debugPrint('Failed to connect to Feedback API: $e');
       return null;
-    }
-  }
-
-  /// Gets model stats from the feedback-based system
-  Future<Map<String, dynamic>> getFeedbackModelStats({String? exercise}) async {
-    try {
-      final queryParams = exercise != null ? {'exercise': exercise} : null;
-      final uri = Uri.parse('$feedbackUrl/stats').replace(queryParameters: queryParams);
-      final response = await http.get(uri);
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        debugPrint('Failed to get feedback model stats: ${response.statusCode}');
-        return {'error': 'Failed to get model stats'};
-      }
-    } catch (e) {
-      debugPrint('Failed to connect to Feedback API: $e');
-      return {'error': 'Failed to connect to Feedback API'};
-    }
-  }
-  
-  /// Tests connection to the feedback API
-  Future<bool> testFeedbackApiConnection() async {
-    try {
-      final response = await http.get(Uri.parse('$feedbackUrl/'));
-      return response.statusCode == 200;
-    } catch (e) {
-      debugPrint('Failed to connect to Feedback API: $e');
-      return false;
-    }
-  }
-
-  /// Gets predictions from both neural network and feedback systems for comparison
-  Future<Map<String, WeightPrediction?>> comparePredictions(String exerciseId) async {
-    try {
-      // Get exercise history for predictions
-      final exerciseSets = await _historyService.getExerciseHistory(exerciseId);
-      
-      // Return early if no history available
-      if (exerciseSets.isEmpty) {
-        return {
-          'neural_network': null,
-          'feedback': null,
-        };
-      }
-      
-      // Get predictions from both systems
-      WeightPrediction? neuralNetworkPrediction;
-      WeightPrediction? feedbackPrediction;
-      
-      try {
-        // Try to get neural network prediction
-        neuralNetworkPrediction = await getRecommendedWeight(exerciseId);
-      } catch (e) {
-        debugPrint('Error getting neural network prediction: $e');
-      }
-      
-      try {
-        // Try to get feedback-based prediction
-        feedbackPrediction = await getFeedbackPrediction(exerciseId, exerciseSets);
-      } catch (e) {
-        debugPrint('Error getting feedback-based prediction: $e');
-      }
-      
-      return {
-        'neural_network': neuralNetworkPrediction,
-        'feedback': feedbackPrediction,
-      };
-    } catch (e) {
-      debugPrint('Error comparing predictions: $e');
-      return {
-        'neural_network': null,
-        'feedback': null,
-      };
     }
   }
 }

@@ -29,9 +29,15 @@ void main() async {
 
   // Load environment variables
   await EnvConfig.initialize();
-  
+
   // Initialize Config Service
   await ConfigService().initialize();
+
+  print('Initializing Supabase...');
+  print('Supabase URL: ${SupabaseConfig.supabaseUrl}');
+  print(
+    'Supabase Anon Key: ${SupabaseConfig.supabaseAnonKey.substring(0, 20)}...',
+  );
 
   // Initialize Supabase
   await Supabase.initialize(
@@ -39,6 +45,8 @@ void main() async {
     anonKey: SupabaseConfig.supabaseAnonKey,
     debug: true,
   );
+
+  print('Supabase initialized successfully');
 
   // Initialize the app
   runApp(const MyApp());
